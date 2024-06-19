@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: Ruff Lint
+        entry: docker compose exec -T ranking_ope poetry run ruff
+        language: system
+        types: [python]
+        args: [--config, /app/pyproject.toml]
+        pass_filenames: false

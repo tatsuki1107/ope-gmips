@@ -1,0 +1,23 @@
+n_val_seeds: 1000
+val_size: 5000
+n_test_seeds: 100
+test_size: 100000
+dim_context: 5
+n_unique_actions: 4
+n_category: 2
+len_list: 8
+reward_noise: 1.0
+interaction_noise: 1.0
+random_state: 12345
+user_behavior:
+  - "independent"
+  - "cascade"
+  - "all"
+
+defaults:
+  - _self_
+  - variation: len_list
+
+hydra:
+  run:
+    dir: src/synthetic/logs/${hydra.job.name}/
