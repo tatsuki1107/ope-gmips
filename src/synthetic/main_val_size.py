@@ -19,6 +19,9 @@ from utils.plot import visualize_mean_squared_error
 from utils.policy import gen_eps_greedy
 
 
+TQDM_FORMAT = "{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]"
+
+
 cs = ConfigStore.instance()
 # cs.store(name="setting", node=Config)
 
@@ -26,12 +29,24 @@ logger = logging.getLogger(__name__)
 
 
 ope_estimators = dict(
-    all=[SIPS(estimator_name="SIPS", pscore_type="action"), SIPS(estimator_name="MSIPS", pscore_type="category")],
+    all=[
+        SIPS(estimator_name="SIPS", pscore_type="action"),
+        SIPS(estimator_name="MSIPS", pscore_type="category"),
+        IIPS(estimator_name="MIIPS", pscore_type="category"),
+        RIPS(estimator_name="MRIPS", pscore_type="category"),
+    ],
     independent=[
+        SIPS(estimator_name="MSIPS", pscore_type="category"),
         IIPS(estimator_name="IIPS", pscore_type="action"),
         IIPS(estimator_name="MIIPS", pscore_type="category"),
+        RIPS(estimator_name="MRIPS", pscore_type="category"),
     ],
-    cascade=[RIPS(estimator_name="RIPS", pscore_type="action"), RIPS(estimator_name="MRIPS", pscore_type="category")],
+    cascade=[
+        SIPS(estimator_name="MSIPS", pscore_type="category"),
+        IIPS(estimator_name="MIIPS", pscore_type="category"),
+        RIPS(estimator_name="RIPS", pscore_type="action"),
+        RIPS(estimator_name="MRIPS", pscore_type="category"),
+    ],
 )
 
 
@@ -43,70 +58,77 @@ def calc_avg_reward(args: tuple[SyntheticSlateDatasetWithActionEmbeds, int]) -> 
     return avg_reward
 
 
+def simulate_evaluation(args: tuple[SyntheticSlateDatasetWithActionEmbeds, int, str]) -> dict:
+    dataset, val_size, user_behavior, eps = args
+
+    val_data = dataset.obtain_batch_bandit_feedback(n_rounds=val_size)
+
+    # evaluation policy
+    evaluation_policy = gen_eps_greedy(val_data["evaluation_policy_logit"], eps=eps)
+    evaluation_pscore_dict = dataset.aggregate_propensity_score(
+        pi=evaluation_policy,
+        slate_action=val_data["action"],
+        p_e_d_a=val_data["p_e_d_a"],
+        slate_action_context=val_data["action_context"],
+    )
+
+    # off policy evaluation
+    ope = SlateOffPolicyEvaluation(
+        bandit_feedback=val_data,
+        ope_estimators=ope_estimators[user_behavior],
+    )
+    estimated_policy_values = ope.estimate_policy_values(evaluation_policy_pscore_dict=evaluation_pscore_dict)
+
+    return estimated_policy_values
+
+
 @hydra.main(config_path="conf", config_name="config", version_base=None)
 def main(cfg) -> None:
-    
     logger.info("start experiment...")
-    
+
     log_path = Path(HydraConfig.get().run.dir)
-    
+
     for user_behavior in cfg.user_behavior:
-        
         result_path = log_path / user_behavior
         result_path.mkdir(parents=True, exist_ok=True)
-        
+
         behavior_ratio = {behavior: 1.0 if behavior == user_behavior else 0.0 for behavior in cfg.user_behavior}
-        
+
         dataset = SyntheticSlateDatasetWithActionEmbeds(
             n_actions=cfg.n_unique_actions,
             dim_context=cfg.dim_context,
-            n_category=cfg.n_category,
+            n_cat_dim=cfg.n_cat_dim,
+            n_cat_per_dim=cfg.n_cat_per_dim,
+            n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
+            beta=cfg.beta,
             len_list=cfg.len_list,
             behavior_ratio=behavior_ratio,
             random_state=cfg.random_state,
             reward_noise=cfg.reward_noise,
             interaction_noise=cfg.interaction_noise,
+            eps=cfg.eps,
         )
 
         job_args = [(dataset, cfg.test_size) for _ in range(cfg.n_test_seeds)]
+        message = "calculate approximate policy value ..."
         num_workers = cpu_count() - 1
         with Pool(num_workers) as pool:
-            results = pool.imap(calc_avg_reward, job_args)
-            t = tqdm(results, total=cfg.n_test_seeds, desc="calculate approximate policy value ...")
-            approximate_policy_value = np.mean(list(t))
-        
-        logger.info(t)
-        
+            imap_iter = pool.imap(calc_avg_reward, job_args)
+            tqdm_ = tqdm(imap_iter, total=cfg.n_test_seeds, desc=message, bar_format=TQDM_FORMAT)
+            approximate_policy_value = np.mean(list(tqdm_))
+
+        logger.info(tqdm_)
+
         result_df_list = []
         for val_size in cfg.variation.val_size_list:
-
             message = f"behavior={user_behavior}, val_size={val_size}"
-            t = tqdm(range(cfg.n_val_seeds), total=cfg.n_val_seeds, desc=message)
-            result_list = []
-            for _ in t:
-                val_data = dataset.obtain_batch_bandit_feedback(n_rounds=val_size)
+            job_args = [(dataset, val_size, user_behavior, cfg.eps) for _ in range(cfg.n_val_seeds)]
+            with Pool(num_workers) as pool:
+                imap_iter = pool.imap(simulate_evaluation, job_args)
+                tqdm_ = tqdm(imap_iter, total=cfg.n_val_seeds, desc=message, bar_format=TQDM_FORMAT)
+                result_list = list(tqdm_)
 
-                # evaluation policy
-                evaluation_policy = gen_eps_greedy(val_data["evaluation_policy_logit"])
-                evaluation_pscore_dict = dataset.aggregate_propensity_score(
-                    pi=evaluation_policy,
-                    slate_action=val_data["action"],
-                    p_e_a=val_data["p_e_a"],
-                    slate_category=val_data["category"],
-                )
-
-                # off policy evaluation
-                ope = SlateOffPolicyEvaluation(
-                    bandit_feedback=val_data,
-                    ope_estimators=ope_estimators[user_behavior],
-                )
-                estimated_policy_values = ope.estimate_policy_values(
-                    evaluation_policy_pscore_dict=evaluation_pscore_dict
-                )
-
-                result_list.append(estimated_policy_values)
-
-            logger.info(t)
+            logger.info(tqdm_)
             # calculate MSE
             result_df = aggregate_simulation_results(
                 simulation_result_list=result_list, policy_value=approximate_policy_value, x_value=val_size
@@ -115,13 +137,12 @@ def main(cfg) -> None:
 
         result_df = pd.concat(result_df_list).reset_index(level=0)
         result_df.to_csv(result_path / "result.csv")
-        
-        visualize_mean_squared_error(
-            result_df=result_df, 
-            xlabel="data size", 
-            img_path=result_path / "mse.png"
-        )
-    
+
+        for yscale in ["linear", "log"]:
+            visualize_mean_squared_error(
+                result_df=result_df, xlabel="val size", img_path=result_path / f"mse_{yscale}.png", yscale=yscale
+            )
+
     logger.info("finish experiment...")
 
 
