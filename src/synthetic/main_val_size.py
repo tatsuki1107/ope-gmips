@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 ope_estimators = dict(
-    all=[
+    standard=[
         SIPS(estimator_name="SIPS", pscore_type="action"),
         SIPS(estimator_name="MSIPS", pscore_type="category"),
         IIPS(estimator_name="MIIPS", pscore_type="category"),
@@ -66,9 +66,9 @@ def simulate_evaluation(args: tuple[SyntheticSlateDatasetWithActionEmbeds, int, 
     # evaluation policy
     evaluation_policy = gen_eps_greedy(val_data["evaluation_policy_logit"], eps=eps)
     evaluation_pscore_dict = dataset.aggregate_propensity_score(
-        pi=evaluation_policy,
-        slate_action=val_data["action"],
-        p_e_d_a=val_data["p_e_d_a"],
+        pi_k=evaluation_policy,
+        slate_id_at_k=val_data["slate_id_at_k"],
+        p_e_d_a_k=val_data["p_e_d_a_k"],
         slate_action_context=val_data["action_context"],
     )
 
@@ -95,7 +95,7 @@ def main(cfg) -> None:
         behavior_ratio = {behavior: 1.0 if behavior == user_behavior else 0.0 for behavior in cfg.user_behavior}
 
         dataset = SyntheticSlateDatasetWithActionEmbeds(
-            n_actions=cfg.n_unique_actions,
+            n_actions_at_k=cfg.n_unique_actions_at_k,
             dim_context=cfg.dim_context,
             n_cat_dim=cfg.n_cat_dim,
             n_cat_per_dim=cfg.n_cat_per_dim,

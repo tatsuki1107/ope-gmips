@@ -3,11 +3,11 @@ from abc import abstractmethod
 from dataclasses import dataclass
 
 import numpy as np
-from obp.dataset import linear_reward_function
-from obp.utils import sample_action_fast
+from obp.dataset import logistic_reward_function
 from obp.utils import softmax
 from sklearn.utils import check_random_state
 from utils.policy import gen_eps_greedy
+from utils.sampling import sample_slate_fast_with_replacement
 
 
 class BaseBanditDataset(metaclass=ABCMeta):
@@ -18,7 +18,7 @@ class BaseBanditDataset(metaclass=ABCMeta):
 
 @dataclass
 class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
-    n_actions: int
+    n_actions_at_k: int
     dim_context: int
     n_cat_dim: int
     n_cat_per_dim: int
@@ -36,7 +36,12 @@ class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
     def __post_init__(self) -> None:
         self.random_ = check_random_state(self.random_state)
 
-        # 未知分布の定義
+        self.n_actions = self.n_actions_at_k * self.len_list
+
+        # set of slates
+        self.candidate_action_set_at_k = np.arange(self.n_actions).reshape(self.len_list, self.n_actions_at_k)
+
+        # define the unknown distribution
         self._define_action_embed()
         self.interaction_params = self.random_.uniform(0.0, self.interaction_noise, size=(self.len_list, self.len_list))
 
@@ -62,7 +67,7 @@ class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
         # r
         q_x_a, q_x_e = [], []
         for d in range(self.n_cat_dim):
-            q_x_e_d = linear_reward_function(
+            q_x_e_d = logistic_reward_function(
                 context=context,
                 action_context=self.latent_cat_param[d],
                 random_state=self.random_state + d,
@@ -78,26 +83,23 @@ class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
         cat_dim_importance_ = self.cat_dim_importance.reshape((1, 1, self.n_cat_dim))
         q_x_a = (q_x_a * cat_dim_importance_).sum(2)  # shape: (n_rounds, n_actions)
 
-        pi_b = gen_eps_greedy(q_x_a, eps=self.eps) if is_online else softmax(self.beta * q_x_a)
+        q_x_a_k = np.tile(q_x_a[:, :, None], reps=self.len_list)
+        q_x_a_k = q_x_a_k[
+            np.arange(n_rounds)[:, None, None],
+            self.candidate_action_set_at_k.T[None, :, :],
+            np.arange(self.len_list)[None, None, :],
+        ]
 
-        slate_action = []
-        for _ in range(self.len_list):
-            # a ~ \pi_{\cdot}(a|x)
-            action = sample_action_fast(pi_b)
-            slate_action.append(action)
+        # a(k) ~ \pi_b(\cdot|x)
+        pi_b_k = gen_eps_greedy(q_x_a_k, eps=self.eps) if is_online else softmax(self.beta * q_x_a_k)
+        slate_id_at_k, slates = sample_slate_fast_with_replacement(
+            pi_b_k, candidate_action_set_at_k=self.candidate_action_set_at_k
+        )
 
-        slate_action = np.array(slate_action).T
-
-        slate_action_1d = slate_action.reshape(-1)
-        slate_action_context = np.zeros((n_rounds, self.len_list, self.n_cat_dim), dtype=int)
-        # e ~ \prod_{d=1}^{D} p(e(k)_d|x,a(k))
-        for d in range(self.n_cat_dim):
-            # e_d ~ p(e_d|x,a)
-            action_context_d = sample_action_fast(self.p_e_d_a[slate_action_1d, :, d])
-            action_context_d = action_context_d.reshape(n_rounds, self.len_list)
-            slate_action_context[:, :, d] = action_context_d
-
-        # slate_action_context = np.array(slate_action_context).T  # shape: (n_rounds, len_list, n_cat_dim)
+        # e ~ p(e|x,a)
+        slate_action_1d = slates.reshape(-1)
+        slate_embeddings = sample_slate_fast_with_replacement(self.p_e_d_a[slate_action_1d])
+        slate_embeddings = slate_embeddings.reshape(n_rounds, self.len_list, self.n_cat_dim)
 
         # c ~ p(c|x)
         user_behavior = self.random_.choice(
@@ -110,7 +112,7 @@ class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
         expected_reward_factual = []
         for pos_ in range(self.len_list):
             expected_reward_pos_ = (cat_dim_importance_ * q_x_e)[
-                np.arange(n_rounds)[:, None], np.arange(self.n_cat_dim), slate_action_context[:, pos_, :]
+                np.arange(n_rounds)[:, None], np.arange(self.n_cat_dim), slate_embeddings[:, pos_, :]
             ].sum(1)
             expected_reward_factual.append(expected_reward_pos_)
 
@@ -125,40 +127,45 @@ class SyntheticSlateDatasetWithActionEmbeds(BaseBanditDataset):
         # r_i ~ p(r_i|x_i, a_i, e_i)
         reward = self.random_.normal(expected_reward_factual_fixed, scale=self.reward_noise)
 
+        p_e_d_a_k = self.p_e_d_a.reshape(self.n_actions_at_k, self.len_list, self.n_cat_per_dim, self.n_cat_dim)
+
         pscore_dict = self.aggregate_propensity_score(
-            pi=pi_b,
-            slate_action=slate_action,
-            p_e_d_a=self.p_e_d_a[:, :, self.n_unobserved_cat_dim :],
-            slate_action_context=slate_action_context,
+            pi_k=pi_b_k,
+            slate_id_at_k=slate_id_at_k,
+            p_e_d_a_k=p_e_d_a_k[:, :, :, self.n_unobserved_cat_dim :],
+            slate_action_context=slate_embeddings,
         )
 
         return dict(
             context=context,
             user_behavior=user_behavior,
-            action=slate_action,
-            p_e_d_a=self.p_e_d_a[:, :, self.n_unobserved_cat_dim :],
-            action_context=slate_action_context[:, :, self.n_unobserved_cat_dim :],
+            action=slates,
+            p_e_d_a_k=p_e_d_a_k[:, :, :, self.n_unobserved_cat_dim :],
+            action_context=slate_embeddings[:, :, self.n_unobserved_cat_dim :],
             reward=reward,
             pscore=pscore_dict,
-            evaluation_policy_logit=q_x_a,
+            evaluation_policy_logit=q_x_a_k,
             expected_reward_factual=expected_reward_factual_fixed,
+            slate_id_at_k=slate_id_at_k,
         )
 
     def aggregate_propensity_score(
         self,
-        pi: np.ndarray,
-        slate_action: np.ndarray,
-        p_e_d_a: np.ndarray,
+        pi_k: np.ndarray,
+        slate_id_at_k: np.ndarray,
+        p_e_d_a_k: np.ndarray,
         slate_action_context: np.ndarray,
     ) -> dict:
-        rounds = np.arange(len(slate_action))
-        marginal_pscore = np.ones_like(slate_action, dtype=float)
-        for d in range(p_e_d_a.shape[-1]):
-            p_e_pi_d = pi @ p_e_d_a[:, :, d]
-            marginal_pscore *= p_e_pi_d[rounds[:, None], slate_action_context[:, :, d]]
+        rounds = np.arange(len(slate_id_at_k))
+        position = np.arange(self.len_list)
+        marginal_pscore = np.ones_like(slate_id_at_k, dtype=float)
+        for pos_ in position:
+            for d in range(self.n_cat_dim):
+                p_e_pi_d_k = pi_k[:, :, pos_] @ p_e_d_a_k[:, pos_, :, d]
+                marginal_pscore[:, pos_] *= p_e_pi_d_k[rounds, slate_action_context[:, pos_, d]]
 
         # \pi__{\cdot}(\mathbf{a}_{i}(k)|x_i)
-        pscore = pi[rounds[:, None], slate_action].copy()
+        pscore = pi_k[rounds[:, None], slate_id_at_k, position[None, :]].copy()
 
         pscore_dict = dict(action=pscore, category=marginal_pscore)
 

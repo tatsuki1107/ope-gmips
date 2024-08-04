@@ -50,6 +50,26 @@ class SIPS(BaseSlateInversePropensityScore):
 
 
 @dataclass
+class SNSIPS(SIPS):
+    """Self Normalized Standard Inverse Propensity Score Estimator Class."""
+
+    def estimate_policy_value(
+        self,
+        reward: np.ndarray,
+        behavior_policy_pscore: np.ndarray,
+        evaluation_policy_pscore: np.ndarray,
+    ) -> float:
+        return (
+            self.estimate_round_rewards(
+                reward=reward,
+                behavior_policy_pscore=behavior_policy_pscore,
+                evaluation_policy_pscore=evaluation_policy_pscore,
+            ).sum()
+            / (evaluation_policy_pscore / behavior_policy_pscore).sum()
+        )
+
+
+@dataclass
 class IIPS(BaseSlateInversePropensityScore):
     """Independent Inverse Propensity Score Estimator Class."""
 
