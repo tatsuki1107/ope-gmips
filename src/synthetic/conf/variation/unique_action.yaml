@@ -1,6 +1,9 @@
-unique_action_list:
-  - 3
-  - 100
-  - 500
-  - 1000
-  - 2000
+unique_action_at_k_list:
+  - 2
+  - 5
+  - 10
+  - 20
+len_list: 4
+n_cat_dim: 2
+n_cat_per_dim: 2
+# n_unique_actions = n_unique_actions_at_k * len_list

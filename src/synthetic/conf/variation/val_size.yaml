@@ -1,6 +1,9 @@
 val_size_list:
-  - 1000
-  - 3000
-  - 5000
-  - 7000
-  - 9000
+  - 2000
+  - 4000
+  - 8000
+n_unique_actions_at_k: 15
+n_cat_dim: 3
+n_cat_per_dim: 2
+len_list: 7
+max_depth: 2

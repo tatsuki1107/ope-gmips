@@ -1,6 +1,9 @@
 n_unobserved_cat_dim_list:
   - 0
+  - 2
+  - 3
   - 5
-  - 10
-  - 15
-  - 19
+n_cat_dim: 5
+n_cat_per_dim: 2
+len_list: 3
+n_unique_actions_at_k: 10
