@@ -7,4 +7,4 @@ repos:
         language: system
         types: [python]
         args: [--config, /app/pyproject.toml]
-        pass_filenames: false
+        pass_filenames: true # staging files only
