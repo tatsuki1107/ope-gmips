@@ -1,10 +1,12 @@
 n_val_seeds: 1000
-val_size: 10000
-n_test_seeds: 100
-test_size: 10000
-dim_context: 3
+val_size: 5000
+test_size: 1000000
+dim_context: 5
 n_unobserved_cat_dim: 0
-len_list: 7
+len_list: 5
+n_unique_actions_at_k: 20
+n_cat_dim: 3
+n_cat_per_dim: 2
 beta: -1.0
 eps: 0.3
 reward_noise: 0.5
@@ -21,4 +23,4 @@ defaults:
 
 hydra:
   run:
-    dir: src/synthetic/logs/${hydra.job.name}/
+    dir: src/synthetic/logs/${hydra.job.name}/beta=${beta}, eps=${eps}/

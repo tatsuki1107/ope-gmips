@@ -8,4 +8,6 @@ RUN pip install --upgrade poetry \
 
 COPY pyproject.toml poetry.lock /app/
 
+ENV PYTHONPATH=/app
+
 RUN poetry install

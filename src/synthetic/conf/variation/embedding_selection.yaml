@@ -1,0 +1,8 @@
+val_size_list:
+  - 2000
+  - 4000
+  - 8000
+  - 16000
+  - 32000
+min_combination: 1
+delta: 0.05

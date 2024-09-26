@@ -44,29 +44,29 @@ def main(cfg) -> None:
         result_path.mkdir(parents=True, exist_ok=True)
 
         behavior_params = {user_behavior: 1.0}
-        dataset = SyntheticRankingDatasetWithActionEmbeds(
-            n_actions_at_k=cfg.n_unique_actions_at_k,
-            dim_context=cfg.dim_context,
-            n_cat_dim=cfg.n_cat_dim,
-            n_cat_per_dim=cfg.n_cat_per_dim,
-            n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
-            beta=cfg.beta,
-            len_list=cfg.len_list,
-            behavior_params=behavior_params,
-            random_state=cfg.random_state,
-            reward_noise=cfg.reward_noise,
-            interaction_noise=cfg.interaction_noise,
-            eps=cfg.eps,
-        )
-
-        # calculate ground truth policy value (on policy)
-        test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
-        policy_value = test_data["expected_reward_factual"].sum(1).mean()
-
         result_df_list = []
-        for val_size in cfg.variation.val_size_list:
-            message = f"behavior={user_behavior}, val_size={val_size}"
-            job_args = [(ope_estimators, None, dataset, val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
+        for eps in cfg.variation.eps_list:
+            dataset = SyntheticRankingDatasetWithActionEmbeds(
+                n_actions_at_k=cfg.n_unique_actions_at_k,
+                dim_context=cfg.dim_context,
+                n_cat_dim=cfg.n_cat_dim,
+                n_cat_per_dim=cfg.n_cat_per_dim,
+                n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
+                len_list=cfg.len_list,
+                behavior_params=behavior_params,
+                random_state=cfg.random_state,
+                reward_noise=cfg.reward_noise,
+                interaction_noise=cfg.interaction_noise,
+                beta=cfg.beta,
+                eps=eps,
+            )
+
+            # calculate ground truth policy value (on policy)
+            test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
+            policy_value = test_data["expected_reward_factual"].sum(1).mean()
+
+            message = f"behavior={user_behavior}, eps={eps}"
+            job_args = [(ope_estimators, None, dataset, cfg.val_size, eps) for _ in range(cfg.n_val_seeds)]
             with Pool(cpu_count() - 1) as pool:
                 imap_iter = pool.imap(simulate_evaluation, job_args)
                 tqdm_ = tqdm(imap_iter, total=cfg.n_val_seeds, desc=message, bar_format=TQDM_FORMAT)
@@ -75,7 +75,7 @@ def main(cfg) -> None:
             logger.info(tqdm_)
             # calculate MSE
             result_df = aggregate_simulation_results(
-                simulation_result_list=result_list, policy_value=policy_value, x_value=val_size
+                simulation_result_list=result_list, policy_value=policy_value, x_value=eps
             )
             result_df_list.append(result_df)
 
@@ -84,13 +84,13 @@ def main(cfg) -> None:
 
         for yscale in ["linear", "log"]:
             for is_only_mse in [True, False]:
-                img_path = result_path / f"{yscale}_mse_only={is_only_mse}_varying=val_size_{user_behavior}.png"
+                img_path = result_path / f"{yscale}_mse_only={is_only_mse}_varying=eps_{user_behavior}.png"
                 visualize_mean_squared_error(
                     result_df=result_df,
-                    xlabel="sample sizes",
+                    xlabel="",
                     img_path=img_path,
                     yscale=yscale,
-                    xscale="log",
+                    xscale="linear",
                     is_only_mse=is_only_mse,
                 )
 
