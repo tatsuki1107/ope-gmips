@@ -1,19 +1,19 @@
 behavior_complexity_dict:
   independent: 0.0
   top_2_cascade: 0.2
-  cascade: 0.4
-  neighbor_3: 0.6
+  neighbor_1: 0.4
+  cascade: 0.6
   inverse_cascade: 0.8
   standard: 1.0
 
-# tuning setting of the user behavior
-val_size_bias_estimation: 10000
-n_partition: 5
+# UserBehaviorTree
+n_partition: 10
 min_samples_leaf: 100
 n_bootstrap: 10
 max_depth: 5
-
-n_unique_actions_at_k: 16
-n_cat_dim: 2
-n_cat_per_dim: 3
-len_list: 5
+noise_level: 0.3
+candidate_weights:
+  - "cascade"
+  - "neighbor_1"
+  - "independent"
+  - "random_0"

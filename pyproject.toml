@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Off-Policy Evaluation of Ranking Policies for Large Slate Spaces via Embeddings and User Behavior"
+name = "Off-Policy Evaluation of Ranking Policies for Large Action Spaces via Embeddings and User Behavior Assumption"
 version = "0.1.0"
 description = ""
 authors = ["tatsuki takahashi"]

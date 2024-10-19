@@ -10,8 +10,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from dataset import SyntheticRankingDatasetWithActionEmbeds
+from ope import InversePropensityScoreForRanking as IPS
 from ope import MarginalizedIPSForRanking as MIPS
-from ope import SelfNormalizedIPSForRanking as SNIPS
 from ope import simulate_evaluation
 from utils import TQDM_FORMAT
 from utils import aggregate_simulation_results
@@ -23,11 +23,11 @@ cs = ConfigStore.instance()
 logger = logging.getLogger(__name__)
 
 ope_estimators = [
-    SNIPS(estimator_name="snSIPS"),
+    IPS(estimator_name="SIPS"),
     MIPS(estimator_name="MSIPS"),
-    SNIPS(estimator_name="snIIPS"),
+    IPS(estimator_name="IIPS"),
     MIPS(estimator_name="MIIPS"),
-    SNIPS(estimator_name="snRIPS"),
+    IPS(estimator_name="RIPS"),
     MIPS(estimator_name="MRIPS"),
 ]
 
@@ -45,15 +45,15 @@ def main(cfg) -> None:
 
         behavior_params = {user_behavior: 1.0}
         result_df_list = []
-        for len_list in cfg.variation.len_list_list:
+        for n_deficient_actions_at_k in cfg.variation.n_deficient_actions_at_k_list:
             dataset = SyntheticRankingDatasetWithActionEmbeds(
-                n_actions_at_k=cfg.variation.n_unique_actions_at_k,
+                n_actions_at_k=cfg.n_unique_actions_at_k,
                 dim_context=cfg.dim_context,
                 n_cat_dim=cfg.n_cat_dim,
                 n_cat_per_dim=cfg.n_cat_per_dim,
                 n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
-                n_deficient_actions_at_k=cfg.n_deficient_actions_at_k,
-                len_list=len_list,
+                n_deficient_actions_at_k=n_deficient_actions_at_k,
+                len_list=cfg.len_list,
                 behavior_params=behavior_params,
                 random_state=cfg.random_state,
                 reward_noise=cfg.reward_noise,
@@ -61,12 +61,13 @@ def main(cfg) -> None:
                 beta=cfg.beta,
                 eps=cfg.eps,
             )
+            n_deficient_actions = n_deficient_actions_at_k * cfg.len_list
 
             # calculate ground truth policy value (on policy)
             test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
             policy_value = test_data["expected_reward_factual"].sum(1).mean()
 
-            message = f"behavior={user_behavior}, len_list={len_list}"
+            message = f"behavior={user_behavior}, n_deficient_actions={n_deficient_actions}"
             job_args = [(ope_estimators, dataset, cfg.val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
             with Pool(cpu_count() - 1) as pool:
                 imap_iter = pool.imap(simulate_evaluation, job_args)
@@ -76,7 +77,7 @@ def main(cfg) -> None:
             logger.info(tqdm_)
             # calculate MSE
             result_df = aggregate_simulation_results(
-                simulation_result_list=result_list, policy_value=policy_value, x_value=len_list
+                simulation_result_list=result_list, policy_value=policy_value, x_value=n_deficient_actions
             )
             result_df_list.append(result_df)
 
@@ -85,7 +86,7 @@ def main(cfg) -> None:
 
         visualize_mean_squared_error(
             result_df=result_df,
-            xlabel="the length of the ranking",
+            xlabel="number of deficient actions",
             img_path=result_path,
             xscale="linear",
         )

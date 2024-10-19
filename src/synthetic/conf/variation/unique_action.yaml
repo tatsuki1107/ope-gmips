@@ -1,9 +1,8 @@
 unique_action_at_k_list:
-  - 2
   - 5
-  - 10
-  - 20
-len_list: 4
-n_cat_dim: 2
-n_cat_per_dim: 2
-# n_unique_actions = n_unique_actions_at_k * len_list
+  - 15
+  - 45
+  - 135
+  - 405
+len_list: 3
+# n_actions = n_unique_actions_at_k * len_list

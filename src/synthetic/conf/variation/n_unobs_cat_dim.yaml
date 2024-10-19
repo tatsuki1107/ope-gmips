@@ -1,7 +1,33 @@
 n_unobserved_cat_dim_list:
   - 0
+  - 1
   - 2
   - 3
+  - 4
   - 5
+  - 6
+  - 7
+  - 8
+  - 9
 n_cat_dim: 10
 n_cat_per_dim: 2
+user_behaviors:
+  # behavior: temperature degree
+  independent: 1.0
+  top_2_cascade: 1.0
+  cascade: 1.0
+  neighbor_1: 1.0
+  inverse_cascade: 1.0
+  standard: 1.0
+
+# UserBehaviorTree
+n_partition: 10
+min_samples_leaf: 100
+n_bootstrap: 10
+max_depth: 5
+noise_level: 0.3
+candidate_weights:
+  - "cascade"
+  - "neighbor_1"
+  - "independent"
+  - "random_0"

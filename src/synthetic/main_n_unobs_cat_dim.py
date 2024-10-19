@@ -1,6 +1,4 @@
 import logging
-from multiprocessing import Pool
-from multiprocessing import cpu_count
 from pathlib import Path
 
 import hydra
@@ -11,8 +9,12 @@ from tqdm import tqdm
 
 from dataset import SyntheticRankingDatasetWithActionEmbeds
 from ope import MarginalizedIPSForRanking as MIPS
+from ope import RankingOffPolicyEvaluation
+from ope import RankingOffPolicyEvaluationWithTune
 from ope import SelfNormalizedIPSForRanking as SNIPS
-from ope import simulate_evaluation
+from ope import UserBehaviorTree
+from ope.importance_weight import adaptive_weight
+from policy import gen_eps_greedy
 from utils import TQDM_FORMAT
 from utils import aggregate_simulation_results
 from utils import visualize_mean_squared_error
@@ -23,11 +25,8 @@ cs = ConfigStore.instance()
 logger = logging.getLogger(__name__)
 
 ope_estimators = [
-    SNIPS(estimator_name="snSIPS"),
     MIPS(estimator_name="MSIPS"),
-    SNIPS(estimator_name="snIIPS"),
     MIPS(estimator_name="MIIPS"),
-    SNIPS(estimator_name="snRIPS"),
     MIPS(estimator_name="MRIPS"),
 ]
 
@@ -39,60 +38,102 @@ def main(cfg) -> None:
 
     log_path = Path(HydraConfig.get().run.dir)
 
-    for user_behavior in cfg.user_behavior:
-        result_path = log_path / user_behavior
-        result_path.mkdir(parents=True, exist_ok=True)
+    result_path = log_path
+    result_path.mkdir(parents=True, exist_ok=True)
 
-        behavior_params = {user_behavior: 1.0}
-        result_df_list = []
-        for n_unobserved_cat_dim in cfg.variation.n_unobserved_cat_dim_list:
-            dataset = SyntheticRankingDatasetWithActionEmbeds(
-                n_actions_at_k=cfg.n_unique_actions_at_k,
-                dim_context=cfg.dim_context,
-                n_cat_dim=cfg.variation.n_cat_dim,
-                n_cat_per_dim=cfg.variation.n_cat_per_dim,
-                n_unobserved_cat_dim=n_unobserved_cat_dim,
-                len_list=cfg.len_list,
-                behavior_params=behavior_params,
-                random_state=cfg.random_state,
-                reward_noise=cfg.reward_noise,
-                interaction_noise=cfg.interaction_noise,
-                beta=cfg.beta,
-                eps=cfg.eps,
-            )
+    behavior_params = cfg.variation.user_behaviors
+    result_df_list = []
+    for n_unobserved_cat_dim in cfg.variation.n_unobserved_cat_dim_list:
+        dataset = SyntheticRankingDatasetWithActionEmbeds(
+            n_actions_at_k=cfg.n_unique_actions_at_k,
+            dim_context=cfg.dim_context,
+            n_cat_dim=cfg.variation.n_cat_dim,
+            n_cat_per_dim=cfg.variation.n_cat_per_dim,
+            n_unobserved_cat_dim=n_unobserved_cat_dim,
+            n_deficient_actions_at_k=cfg.n_deficient_actions_at_k,
+            len_list=cfg.len_list,
+            behavior_params=behavior_params,
+            random_state=cfg.random_state,
+            reward_noise=cfg.reward_noise,
+            interaction_noise=cfg.interaction_noise,
+            beta=cfg.beta,
+            eps=cfg.eps,
+        )
+        # calculate ground truth policy value (on policy)
+        test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
+        policy_value = test_data["expected_reward_factual"].sum(1).mean()
 
-            # calculate ground truth policy value (on policy)
-            test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
-            policy_value = test_data["expected_reward_factual"].sum(1).mean()
+        message = f"n_unobserved_cat_dim={n_unobserved_cat_dim}"
+        tqdm_ = tqdm(range(cfg.n_val_seeds), desc=message, bar_format=TQDM_FORMAT)
+        result_list = []
+        for seed in tqdm_:
+            # generate synthetic data
+            val_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.val_size)
 
-            message = f"behavior={user_behavior}, n_unobserved_cat_dim={n_unobserved_cat_dim}"
-            job_args = [(ope_estimators, None, dataset, cfg.val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
-            with Pool(cpu_count() - 1) as pool:
-                imap_iter = pool.imap(simulate_evaluation, job_args)
-                tqdm_ = tqdm(imap_iter, total=cfg.n_val_seeds, desc=message, bar_format=TQDM_FORMAT)
-                result_list = list(tqdm_)
+            # evaluation policy
+            action_dist = gen_eps_greedy(expected_reward=val_data["evaluation_policy_logit"], eps=cfg.eps)
 
-            logger.info(tqdm_)
-            # calculate MSE
-            result_df = aggregate_simulation_results(
-                simulation_result_list=result_list, policy_value=policy_value, x_value=n_unobserved_cat_dim
-            )
-            result_df_list.append(result_df)
-
-        result_df = pd.concat(result_df_list).reset_index(level=0)
-        result_df.to_csv(result_path / "result.csv")
-
-        for yscale in ["linear", "log"]:
-            for is_only_mse in [True, False]:
-                img_path = result_path / f"{yscale}_mse_only={is_only_mse}_varying=unobs_cat_dim_{user_behavior}.png"
-                visualize_mean_squared_error(
-                    result_df=result_df,
-                    xlabel="number of unobserved embedding dimentions",
-                    img_path=img_path,
-                    yscale=yscale,
-                    xscale="linear",
-                    is_only_mse=is_only_mse,
+            if seed % 100 == 0:
+                # define tuning estimators before ope
+                ope_estimators_tune = [
+                    UserBehaviorTree(
+                        approximate_policy_value=policy_value,
+                        estimator=SNIPS(estimator_name="snAIPS (w/UBT)"),
+                        param_name="estimated_user_behavior",
+                        dataset=dataset,
+                        weight_func=adaptive_weight,
+                        candidate_weights=cfg.variation.candidate_weights,
+                        eps=cfg.eps,
+                        len_list=cfg.len_list,
+                        n_partition=cfg.variation.n_partition,
+                        min_samples_leaf=cfg.variation.min_samples_leaf,
+                        n_bootstrap=cfg.variation.n_bootstrap,
+                        max_depth=cfg.variation.max_depth,
+                        noise_level=cfg.variation.noise_level,
+                    ),
+                ]
+                ope_tune = RankingOffPolicyEvaluationWithTune(
+                    ope_estimators_tune=ope_estimators_tune,
                 )
+                estimated_policy_values_with_tune = ope_tune.estimate_policy_values_with_tune(
+                    bandit_feedback=val_data.copy(), action_dist=action_dist
+                )
+            else:
+                estimated_policy_values_with_tune = ope_tune.estimate_policy_values_with_best_param(
+                    bandit_feedback=val_data.copy(), action_dist=action_dist
+                )
+
+            # off policy evaluation
+            ope = RankingOffPolicyEvaluation(
+                bandit_feedback=val_data,
+                ope_estimators=ope_estimators,
+            )
+            estimated_policy_values = ope.estimate_policy_values(action_dist=action_dist)
+            estimated_policy_values = estimated_policy_values | estimated_policy_values_with_tune
+            result_list.append(estimated_policy_values)
+
+        # calculate MSE
+        result_df = aggregate_simulation_results(
+            simulation_result_list=result_list, policy_value=policy_value, x_value=n_unobserved_cat_dim
+        )
+        result_df_list.append(result_df)
+
+        logger.info(tqdm_)
+        # calculate MSE
+        result_df = aggregate_simulation_results(
+            simulation_result_list=result_list, policy_value=policy_value, x_value=n_unobserved_cat_dim
+        )
+        result_df_list.append(result_df)
+
+    result_df = pd.concat(result_df_list).reset_index(level=0)
+    result_df.to_csv(result_path / "result.csv")
+
+    visualize_mean_squared_error(
+        result_df=result_df,
+        xlabel="number of unobserved embedding dimentions",
+        img_path=result_path,
+        xscale="linear",
+    )
 
     logger.info("finish experiment...")
 

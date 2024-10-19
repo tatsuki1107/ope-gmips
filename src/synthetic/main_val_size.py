@@ -50,6 +50,7 @@ def main(cfg) -> None:
             n_cat_dim=cfg.n_cat_dim,
             n_cat_per_dim=cfg.n_cat_per_dim,
             n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
+            n_deficient_actions_at_k=cfg.n_deficient_actions_at_k,
             beta=cfg.beta,
             len_list=cfg.len_list,
             behavior_params=behavior_params,
@@ -66,7 +67,7 @@ def main(cfg) -> None:
         result_df_list = []
         for val_size in cfg.variation.val_size_list:
             message = f"behavior={user_behavior}, val_size={val_size}"
-            job_args = [(ope_estimators, None, dataset, val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
+            job_args = [(ope_estimators, dataset, val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
             with Pool(cpu_count() - 1) as pool:
                 imap_iter = pool.imap(simulate_evaluation, job_args)
                 tqdm_ = tqdm(imap_iter, total=cfg.n_val_seeds, desc=message, bar_format=TQDM_FORMAT)
@@ -82,17 +83,12 @@ def main(cfg) -> None:
         result_df = pd.concat(result_df_list).reset_index(level=0)
         result_df.to_csv(result_path / "result.csv")
 
-        for yscale in ["linear", "log"]:
-            for is_only_mse in [True, False]:
-                img_path = result_path / f"{yscale}_mse_only={is_only_mse}_varying=val_size_{user_behavior}.png"
-                visualize_mean_squared_error(
-                    result_df=result_df,
-                    xlabel="sample sizes",
-                    img_path=img_path,
-                    yscale=yscale,
-                    xscale="log",
-                    is_only_mse=is_only_mse,
-                )
+        visualize_mean_squared_error(
+            result_df=result_df,
+            xlabel="sample sizes of logged data",
+            img_path=result_path,
+            xscale="log",
+        )
 
     logger.info("finish experiment...")
 

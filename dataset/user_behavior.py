@@ -9,6 +9,17 @@ from utils import BEHAVIOR_PATTERNS
 
 
 def parse_behavior(behavior: str) -> Union[tuple[str, int], None]:
+    """parse string of a behavior name.
+
+    Args:
+        behavior: str
+            string of a behavior name
+
+    Returns:
+        Union[tuple[str, int], None]: if the behavior name is successfully parsed,
+        return a tuple of behavior name and an integer. Otherwise, return None.
+    """
+
     for behavior_name, pattern in BEHAVIOR_PATTERNS.items():
         match = pattern.match(behavior)
         if match:
@@ -18,6 +29,16 @@ def parse_behavior(behavior: str) -> Union[tuple[str, int], None]:
 
 
 def create_decay_matrix(len_list: int) -> np.ndarray:
+    """create a decay matrix of ranking list.
+
+    Args:
+        len_list: int
+            length of a recommendation list
+
+    Returns:
+        np.ndarray: decay matrix of ranking list
+    """
+
     position = np.arange(len_list, dtype=float)
     tiled_position = np.tile(position, reps=(len_list, 1))
     repeat_position = np.repeat(position[:, None], len_list, axis=1)
@@ -33,6 +54,25 @@ def create_interaction_params(
     interaction_noise: float,
     random_state: Optional[int] = None,
 ) -> dict[str, np.ndarray]:
+    """create interaction parameters (user behavior matrix c) for each behavior.
+
+    Args:
+        behavior_names: list[str]
+            list of behavior names
+
+        len_list: int
+            length of a recommendation list
+
+        interaction_noise: float
+            noise level of interaction parameters for each position.
+
+        random_state: Optional[int] = None
+            random seed.
+
+    Returns:
+        dict[str, np.ndarray]: dictionary of interaction parameters for each behavior.
+    """
+
     random_ = check_random_state(random_state)
     interaction_params = random_.uniform(0, interaction_noise, size=(len_list, len_list))
     np.fill_diagonal(interaction_params, 1)
@@ -57,7 +97,7 @@ def create_interaction_params(
         else:
             parsed_behavior = parse_behavior(behavior_name)
             if parsed_behavior is None:
-                raise NotImplementedError
+                raise NotImplementedError(f"You should implement the behavior: {behavior_name} to parse.")
 
             behavior_name_, int_ = parsed_behavior
             if behavior_name_ == "neighbor_k":
@@ -78,7 +118,9 @@ def create_interaction_params(
                 np.fill_diagonal(behavior_matrix, 1)
 
             else:
-                raise NotImplementedError
+                raise NotImplementedError(
+                    f"You should implement the behavior: {behavior_name} to create behavior matrix."
+                )
 
         interaction_params_dict[behavior_name] = behavior_matrix * interaction_params
 
@@ -90,6 +132,22 @@ def action_interaction_reward_function(
     user_behavior: np.ndarray,
     interaction_params: dict[str, np.ndarray],
 ) -> np.ndarray:
+    """calculate the expected reward of each position in a recommendation list.
+
+    Args:
+        base_expected_reward_factual: np.ndarray
+            base expected reward of each position in a recommendation list (i.e. \bar{q}).
+
+        user_behavior: np.ndarray
+            user behavior names of each round.
+
+        interaction_params: dict[str, np.ndarray]
+            user behavior matrix for each behavior.
+
+    Returns:
+        np.ndarray: expected reward of each position in a recommendation list.
+    """
+
     len_list = base_expected_reward_factual.shape[1]
 
     expected_reward_factual_fixed = np.zeros_like(base_expected_reward_factual)
@@ -111,6 +169,25 @@ def linear_user_behavior_model(
     delta: float = 1.0,
     random_state: Optional[int] = None,
 ) -> np.ndarray:
+    """linear model to create user behavior given context.
+
+    Args:
+        context: np.ndarray
+            context of each round.
+
+        gamma_z: Optional[np.ndarray]
+            user behavior coefficients for each behavior. if None, only one behavior is observed.
+
+        delta: float = 1.0
+            parameter to control the strength of user behavior.
+
+        random_state: Optional[int] = None
+            random seed.
+
+    Returns:
+        np.ndarray: probability of each behavior given context.
+    """
+
     if gamma_z is None:
         n_rounds = len(context)
         p_c_x = np.ones((n_rounds, 1))

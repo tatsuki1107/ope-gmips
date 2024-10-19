@@ -49,9 +49,10 @@ def main(cfg) -> None:
             dataset = SyntheticRankingDatasetWithActionEmbeds(
                 n_actions_at_k=n_actions_at_k,
                 dim_context=cfg.dim_context,
-                n_cat_dim=cfg.variation.n_cat_dim,
-                n_cat_per_dim=cfg.variation.n_cat_per_dim,
+                n_cat_dim=cfg.n_cat_dim,
+                n_cat_per_dim=cfg.n_cat_per_dim,
                 n_unobserved_cat_dim=cfg.n_unobserved_cat_dim,
+                n_deficient_actions_at_k=cfg.n_deficient_actions_at_k,
                 len_list=cfg.variation.len_list,
                 behavior_params=behavior_params,
                 random_state=cfg.random_state,
@@ -66,7 +67,7 @@ def main(cfg) -> None:
             policy_value = test_data["expected_reward_factual"].sum(1).mean()
 
             message = f"behavior={user_behavior}, n_unique_actions={dataset.n_actions}"
-            job_args = [(ope_estimators, None, dataset, cfg.val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
+            job_args = [(ope_estimators, dataset, cfg.val_size, cfg.eps) for _ in range(cfg.n_val_seeds)]
             with Pool(cpu_count() - 1) as pool:
                 imap_iter = pool.imap(simulate_evaluation, job_args)
                 tqdm_ = tqdm(imap_iter, total=cfg.n_val_seeds, desc=message, bar_format=TQDM_FORMAT)
@@ -82,17 +83,12 @@ def main(cfg) -> None:
         result_df = pd.concat(result_df_list).reset_index(level=0)
         result_df.to_csv(result_path / "result.csv")
 
-        for yscale in ["linear", "log"]:
-            for is_only_mse in [True, False]:
-                img_path = result_path / f"{yscale}_mse_only={is_only_mse}_varying=unique_action_{user_behavior}.png"
-                visualize_mean_squared_error(
-                    result_df=result_df,
-                    xlabel="the number of unique actions",
-                    img_path=img_path,
-                    yscale=yscale,
-                    xscale="log",
-                    is_only_mse=is_only_mse,
-                )
+        visualize_mean_squared_error(
+            result_df=result_df,
+            xlabel="the number of unique actions",
+            img_path=result_path,
+            xscale="log",
+        )
 
     logger.info("finish experiment...")
 

@@ -7,6 +7,22 @@ from sklearn.utils import check_random_state
 def sample_slate_fast_with_replacement(
     action_dist: np.ndarray, candidate_action_set_at_k: Optional[np.ndarray] = None, random_state: Optional[int] = None
 ) -> np.ndarray:
+    """Sample a slate of actions with replacement based on the action distribution.
+
+    Args:
+        action_dist: np.ndarray
+            action distribution of a slate of actions.
+
+        candidate_action_set_at_k: Optional[np.ndarray] = None
+            candidate action set at each position of a ranking.
+
+        random_state: Optional[int] = None
+            random seed.
+
+    Returns:
+        np.ndarray: sampled slate of actions.
+    """
+
     random_ = check_random_state(random_state)
     uniform_rvs = random_.uniform(size=(action_dist.shape[0], action_dist.shape[2]))[:, np.newaxis]
     cum_action_dist = action_dist.cumsum(axis=1)

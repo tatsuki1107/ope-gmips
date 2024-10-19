@@ -1,17 +1,55 @@
 dataset_name: "EUR-Lex4K" # EUR-Lex4K or "RCV1-2K"
-n_val_seeds: 1000
+n_val_seeds: 100
 dim_context: 10
-reward_std: 3.0
-max_reward_noise: 0.2
+reward_std: 0.5
 n_unique_action_at_k: 20
 len_list: 5
-n_cat_dim: 5
-n_cat_per_dim: 5
 random_state: 12345
 beta: 1.0
-eps: 0.1
+eps: 0.3
 val_size_list:
-  - 1000
-  - 2000
-  - 4000
-  - 8000
+  - 1500
+  - 3000
+  #- 6000
+  #- 12000
+user_behaviors:
+  # behavior: temperature degree
+  top_2_cascade: 1.0
+  cascade: 1.0
+  neighbor_1: 1.0
+  inverse_cascade: 1.0
+  random_1: 1.0
+  random_2: 1.0
+  standard: 1.0
+
+# UserBehaviorTree
+n_partition: 10
+min_samples_leaf: 100
+n_bootstrap: 10
+max_depth: 5
+noise_level: 0.3
+candidate_weights:
+  - "random_0"
+  - "independent"
+  - "cascade"
+  - "standard"
+  - "neighbor_1"
+
+# NNAbstractionLearner
+n_cat_dim: 5
+n_cat_per_dim: 2
+hidden_size: 10
+learning_rate: 0.00001
+num_epochs: 10
+batch_size: 10
+weight_decay: 0.01
+## Dimension of Embedding Selection
+n_cat_dim_candidates:
+  - 3
+  - 5
+  - 7
+  - 9
+
+hydra:
+  run:
+    dir: src/real/logs/${dataset_name}/

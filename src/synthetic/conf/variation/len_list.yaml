@@ -3,6 +3,5 @@ len_list_list:
   - 4
   - 6
   - 8
+  - 10
 n_unique_actions_at_k: 8
-n_cat_dim: 2
-n_cat_per_dim: 4

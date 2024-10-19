@@ -4,11 +4,11 @@ from utils.constant import BEHAVIOR_PATTERNS
 from utils.constant import LABEL_FONTSIZE
 from utils.constant import LINESTYLE
 from utils.constant import LINEWIDTH
-from utils.constant import MARGINALIZED_ESTIMATORS_HAT_TO_BEHAVIOR
 from utils.constant import MARGINALIZED_ESTIMATORS_TO_BEHAVIOR
 from utils.constant import MARGINALIZED_ESTIMATORS_WITH_SLOPE_TO_BEHAVIOR
 from utils.constant import MARKERSIZE
 from utils.constant import PELETTE
+from utils.constant import TICK_FONTSIZE
 from utils.constant import TITLE_FONTSIZE
 from utils.constant import TQDM_FORMAT
 from utils.constant import TRUE_ADAPTIVE_ESTIMATORS_TO_BEHAVIOR
@@ -36,13 +36,13 @@ __all__ = [
     "MARGINALIZED_ESTIMATORS_TO_BEHAVIOR",
     "VANILLA_ESTIMATORS_TO_BEHAVIOR",
     "TRUE_MARGINALIZED_ESTIMATORS_TO_BEHAVIOR",
-    "MARGINALIZED_ESTIMATORS_HAT_TO_BEHAVIOR",
     "TRUE_ADAPTIVE_ESTIMATORS_TO_BEHAVIOR",
     "ADAPTIVE_ESTIMATORS_WITH_UBT_TO_BEHAVIOR",
     "MARGINALIZED_ESTIMATORS_WITH_SLOPE_TO_BEHAVIOR",
     "PELETTE",
     "LINESTYLE",
     "TITLE_FONTSIZE",
+    "TICK_FONTSIZE",
     "LABEL_FONTSIZE",
     "LINEWIDTH",
     "MARKERSIZE",
