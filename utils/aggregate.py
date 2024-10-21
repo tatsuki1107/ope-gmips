@@ -2,7 +2,7 @@ from pandas import DataFrame
 
 
 def aggregate_simulation_results(
-    simulation_result_list: list, policy_value: float, x_value: int, is_normalized: bool = False
+    simulation_result_list: list, policy_value: float, x_value: int, is_normalized: bool = True
 ) -> DataFrame:
     """Aggregate simulation results to calculate bias, variance, and squared error.
 
@@ -31,7 +31,7 @@ def aggregate_simulation_results(
     result_df["x"] = x_value
     se = (result_df["value"] - policy_value) ** 2
     if is_normalized:
-        se /= policy_value
+        se /= policy_value**2
 
     result_df["se"] = se
     result_df["bias"] = 0
@@ -47,8 +47,8 @@ def aggregate_simulation_results(
         variance = estimated_values.var()
 
         if is_normalized:
-            bias /= policy_value
-            variance /= policy_value
+            bias /= policy_value**2
+            variance /= policy_value**2
 
         result_df.loc[row, "bias"] = bias
         result_df.loc[row, "variance"] = variance

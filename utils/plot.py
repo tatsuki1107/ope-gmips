@@ -98,7 +98,7 @@ def _visualize_only_mse(
         ax=ax,
     )
     # title
-    ax.set_title(f"MSE ({yscale}-scale)", fontsize=TITLE_FONTSIZE)
+    ax.set_title("Normalized MSE", fontsize=TITLE_FONTSIZE)
     # y axixs
     ax.set_ylabel("")
     ax.set_yscale(yscale)
@@ -159,7 +159,7 @@ def _visualize_mse_bias_variance(
                 handle.set_markersize(MARKERSIZE)
 
         # title
-        ax_.set_title(f"{title_} ({yscale}-scale)", fontsize=TITLE_FONTSIZE)
+        ax_.set_title(f"Normalized {title_}", fontsize=TITLE_FONTSIZE)
         # xaxis
         if i == 1:
             ax_.set_xlabel(xlabel, fontsize=LABEL_FONTSIZE)

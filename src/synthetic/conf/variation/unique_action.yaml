@@ -1,8 +1,8 @@
 unique_action_at_k_list:
-  - 5
-  - 15
-  - 45
-  - 135
-  - 405
+  - 3
+  - 9
+  - 27
+  - 81
+  - 243
 len_list: 3
 # n_actions = n_unique_actions_at_k * len_list

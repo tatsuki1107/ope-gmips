@@ -192,13 +192,11 @@ class ExtremeBanditDatasetWithActionEmbed(BaseRealBanditDataset):
         self.train_label_all = sp.csr_matrix(all_label[: self.n_train], dtype=np.float32).toarray()
         self.train_label = self.train_label_all[:, self.candidate_labels]
         self.base_train_expected_rewards = self.train_label * (1 - self.eta) + (1 - self.train_label) * (self.eta - 1)
-        # self.base_train_expected_rewards = sigmoid(x=self.base_train_expected_rewards)
         self.base_train_expected_rewards = self.base_train_expected_rewards[:, self.candidate_action_set_at_k.T]
 
         self.test_label_all = sp.csr_matrix(all_label[self.n_train :], dtype=np.float32).toarray()
         self.test_label = self.test_label_all[:, self.candidate_labels]
         self.base_test_expected_rewards = self.test_label * (1 - self.eta) + (1 - self.test_label) * (self.eta - 1)
-        # self.base_test_expected_rewards = sigmoid(x=self.base_test_expected_rewards)
         self.base_test_expected_rewards = self.base_test_expected_rewards[:, self.candidate_action_set_at_k.T]
 
         self.train_contexts = self.sc.fit_transform(self.pca.fit_transform(self.train_feature))

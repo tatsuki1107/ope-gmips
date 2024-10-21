@@ -130,7 +130,7 @@ def main(cfg) -> None:
 
     visualize_mean_squared_error(
         result_df=result_df,
-        xlabel="number of unobserved embedding dimentions",
+        xlabel="number of unobserved embedding dimensions",
         img_path=result_path,
         xscale="linear",
     )
