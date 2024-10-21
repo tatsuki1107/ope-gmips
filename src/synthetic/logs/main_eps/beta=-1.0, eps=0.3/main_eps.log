@@ -1,0 +1,21 @@
+[2024-10-21 11:58:36,875][__main__][INFO] - start the experiment. the settings are as follows
+[2024-10-21 11:58:36,877][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'eps_list': [0.05, 0.2, 0.4, 0.6, 0.8, 1.0]}}
+[2024-10-21 12:00:40,826][__main__][INFO] - behavior=cascade, eps=0.05: 100% 1000/1000 [02:02<00:00,  8.19it/s]
+[2024-10-21 12:02:36,952][__main__][INFO] - behavior=cascade, eps=0.2: 100% 1000/1000 [01:54<00:00,  8.72it/s]
+[2024-10-21 12:04:35,356][__main__][INFO] - behavior=cascade, eps=0.4: 100% 1000/1000 [01:57<00:00,  8.54it/s]
+[2024-10-21 12:06:34,000][__main__][INFO] - behavior=cascade, eps=0.6: 100% 1000/1000 [01:57<00:00,  8.54it/s]
+[2024-10-21 12:08:35,320][__main__][INFO] - behavior=cascade, eps=0.8: 100% 1000/1000 [02:00<00:00,  8.33it/s]
+[2024-10-21 12:10:33,279][__main__][INFO] - behavior=cascade, eps=1.0: 100% 1000/1000 [01:56<00:00,  8.59it/s]
+[2024-10-21 12:12:42,886][__main__][INFO] - behavior=independent, eps=0.05: 100% 1000/1000 [01:59<00:00,  8.39it/s]
+[2024-10-21 12:14:43,457][__main__][INFO] - behavior=independent, eps=0.2: 100% 1000/1000 [01:59<00:00,  8.40it/s]
+[2024-10-21 12:16:43,128][__main__][INFO] - behavior=independent, eps=0.4: 100% 1000/1000 [01:58<00:00,  8.45it/s]
+[2024-10-21 12:18:42,900][__main__][INFO] - behavior=independent, eps=0.6: 100% 1000/1000 [01:58<00:00,  8.47it/s]
+[2024-10-21 12:20:41,454][__main__][INFO] - behavior=independent, eps=0.8: 100% 1000/1000 [01:56<00:00,  8.55it/s]
+[2024-10-21 12:22:40,297][__main__][INFO] - behavior=independent, eps=1.0: 100% 1000/1000 [01:57<00:00,  8.52it/s]
+[2024-10-21 12:24:47,233][__main__][INFO] - behavior=standard, eps=0.05: 100% 1000/1000 [01:57<00:00,  8.54it/s]
+[2024-10-21 12:26:45,729][__main__][INFO] - behavior=standard, eps=0.2: 100% 1000/1000 [01:57<00:00,  8.54it/s]
+[2024-10-21 12:28:42,093][__main__][INFO] - behavior=standard, eps=0.4: 100% 1000/1000 [01:54<00:00,  8.72it/s]
+[2024-10-21 12:30:38,220][__main__][INFO] - behavior=standard, eps=0.6: 100% 1000/1000 [01:54<00:00,  8.73it/s]
+[2024-10-21 12:32:32,434][__main__][INFO] - behavior=standard, eps=0.8: 100% 1000/1000 [01:52<00:00,  8.86it/s]
+[2024-10-21 12:34:27,788][__main__][INFO] - behavior=standard, eps=1.0: 100% 1000/1000 [01:53<00:00,  8.80it/s]
+[2024-10-21 12:34:36,161][__main__][INFO] - finish experiment...

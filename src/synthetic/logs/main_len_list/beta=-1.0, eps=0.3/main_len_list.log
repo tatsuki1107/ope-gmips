@@ -1,0 +1,18 @@
+[2024-10-21 08:40:03,789][__main__][INFO] - start the experiment. the settings are as follows
+[2024-10-21 08:40:03,791][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'len_list_list': [2, 4, 6, 8, 10], 'n_unique_actions_at_k': 8}}
+[2024-10-21 08:41:25,168][__main__][INFO] - behavior=cascade, len_list=2: 100% 1000/1000 [01:20<00:00, 12.36it/s]
+[2024-10-21 08:42:55,897][__main__][INFO] - behavior=cascade, len_list=4: 100% 1000/1000 [01:29<00:00, 11.14it/s]
+[2024-10-21 08:44:40,056][__main__][INFO] - behavior=cascade, len_list=6: 100% 1000/1000 [01:42<00:00,  9.71it/s]
+[2024-10-21 08:46:33,894][__main__][INFO] - behavior=cascade, len_list=8: 100% 1000/1000 [01:52<00:00,  8.87it/s]
+[2024-10-21 08:48:28,574][__main__][INFO] - behavior=cascade, len_list=10: 100% 1000/1000 [01:53<00:00,  8.82it/s]
+[2024-10-21 08:49:54,287][__main__][INFO] - behavior=independent, len_list=2: 100% 1000/1000 [01:18<00:00, 12.74it/s]
+[2024-10-21 08:51:24,066][__main__][INFO] - behavior=independent, len_list=4: 100% 1000/1000 [01:29<00:00, 11.21it/s]
+[2024-10-21 08:53:01,563][__main__][INFO] - behavior=independent, len_list=6: 100% 1000/1000 [01:36<00:00, 10.34it/s]
+[2024-10-21 08:54:49,382][__main__][INFO] - behavior=independent, len_list=8: 100% 1000/1000 [01:46<00:00,  9.38it/s]
+[2024-10-21 08:56:44,551][__main__][INFO] - behavior=independent, len_list=10: 100% 1000/1000 [01:53<00:00,  8.79it/s]
+[2024-10-21 08:58:10,650][__main__][INFO] - behavior=standard, len_list=2: 100% 1000/1000 [01:17<00:00, 12.84it/s]
+[2024-10-21 08:59:36,979][__main__][INFO] - behavior=standard, len_list=4: 100% 1000/1000 [01:25<00:00, 11.67it/s]
+[2024-10-21 09:01:13,910][__main__][INFO] - behavior=standard, len_list=6: 100% 1000/1000 [01:36<00:00, 10.40it/s]
+[2024-10-21 09:02:59,819][__main__][INFO] - behavior=standard, len_list=8: 100% 1000/1000 [01:44<00:00,  9.54it/s]
+[2024-10-21 09:04:54,909][__main__][INFO] - behavior=standard, len_list=10: 100% 1000/1000 [01:53<00:00,  8.79it/s]
+[2024-10-21 09:05:01,704][__main__][INFO] - finish experiment...

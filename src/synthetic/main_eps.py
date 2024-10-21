@@ -85,7 +85,7 @@ def main(cfg) -> None:
 
         visualize_mean_squared_error(
             result_df=result_df,
-            xlabel="epsilon of the target policy",
+            xlabel="epsilon of target policy",
             img_path=result_path,
             xscale="linear",
         )

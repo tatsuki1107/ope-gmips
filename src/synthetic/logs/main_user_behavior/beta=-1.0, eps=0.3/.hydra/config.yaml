@@ -1,0 +1,37 @@
+n_val_seeds: 1000
+val_size: 10000
+test_size: 100000
+dim_context: 5
+n_unobserved_cat_dim: 0
+n_deficient_actions_at_k: 0
+len_list: 5
+n_unique_actions_at_k: 20
+n_cat_dim: 3
+n_cat_per_dim: 2
+beta: -1.0
+eps: 0.3
+reward_noise: 0.5
+interaction_noise: 3.0
+random_state: 12345
+user_behavior:
+- cascade
+- independent
+- standard
+variation:
+  behavior_complexity_dict:
+    independent: 0.0
+    top_2_cascade: 0.2
+    neighbor_1: 0.4
+    cascade: 0.6
+    inverse_cascade: 0.8
+    standard: 1.0
+  n_partition: 10
+  min_samples_leaf: 100
+  n_bootstrap: 10
+  max_depth: 5
+  noise_level: 0.3
+  candidate_weights:
+  - cascade
+  - neighbor_1
+  - independent
+  - random_0

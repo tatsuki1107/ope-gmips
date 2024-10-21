@@ -1,0 +1,18 @@
+[2024-10-21 07:50:30,898][__main__][INFO] - start experiment. the configure is as follow
+[2024-10-21 07:50:30,900][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'unique_action_at_k_list': [3, 9, 27, 81, 243], 'len_list': 3}}
+[2024-10-21 07:51:47,845][__main__][INFO] - behavior=cascade, n_unique_actions=9: 100% 1000/1000 [01:16<00:00, 13.08it/s]
+[2024-10-21 07:53:11,961][__main__][INFO] - behavior=cascade, n_unique_actions=27: 100% 1000/1000 [01:23<00:00, 11.96it/s]
+[2024-10-21 07:54:54,755][__main__][INFO] - behavior=cascade, n_unique_actions=81: 100% 1000/1000 [01:41<00:00,  9.82it/s]
+[2024-10-21 07:57:59,188][__main__][INFO] - behavior=cascade, n_unique_actions=243: 100% 1000/1000 [03:01<00:00,  5.51it/s]
+[2024-10-21 08:06:36,860][__main__][INFO] - behavior=cascade, n_unique_actions=729: 100% 1000/1000 [08:26<00:00,  1.97it/s]
+[2024-10-21 08:08:01,637][__main__][INFO] - behavior=independent, n_unique_actions=9: 100% 1000/1000 [01:15<00:00, 13.17it/s]
+[2024-10-21 08:09:28,799][__main__][INFO] - behavior=independent, n_unique_actions=27: 100% 1000/1000 [01:26<00:00, 11.54it/s]
+[2024-10-21 08:11:13,069][__main__][INFO] - behavior=independent, n_unique_actions=81: 100% 1000/1000 [01:43<00:00,  9.68it/s]
+[2024-10-21 08:14:28,792][__main__][INFO] - behavior=independent, n_unique_actions=243: 100% 1000/1000 [03:13<00:00,  5.18it/s]
+[2024-10-21 08:22:36,802][__main__][INFO] - behavior=independent, n_unique_actions=729: 100% 1000/1000 [07:58<00:00,  2.09it/s]
+[2024-10-21 08:24:02,169][__main__][INFO] - behavior=standard, n_unique_actions=9: 100% 1000/1000 [01:16<00:00, 13.10it/s]
+[2024-10-21 08:25:24,906][__main__][INFO] - behavior=standard, n_unique_actions=27: 100% 1000/1000 [01:22<00:00, 12.16it/s]
+[2024-10-21 08:27:07,577][__main__][INFO] - behavior=standard, n_unique_actions=81: 100% 1000/1000 [01:41<00:00,  9.83it/s]
+[2024-10-21 08:30:22,423][__main__][INFO] - behavior=standard, n_unique_actions=243: 100% 1000/1000 [03:12<00:00,  5.19it/s]
+[2024-10-21 08:38:46,033][__main__][INFO] - behavior=standard, n_unique_actions=729: 100% 1000/1000 [08:12<00:00,  2.03it/s]
+[2024-10-21 08:38:54,819][__main__][INFO] - finish experiment...

@@ -85,7 +85,7 @@ def main(cfg) -> None:
 
         visualize_mean_squared_error(
             result_df=result_df,
-            xlabel="beta of the logging policy",
+            xlabel="beta of logging policy",
             img_path=result_path,
             xscale="linear",
         )

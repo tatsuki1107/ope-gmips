@@ -86,7 +86,7 @@ def main(cfg) -> None:
 
         visualize_mean_squared_error(
             result_df=result_df,
-            xlabel="number of deficient actions",
+            xlabel="number of deficient unique actions",
             img_path=result_path,
             xscale="linear",
         )

@@ -1,0 +1,18 @@
+[2024-10-21 05:36:23,016][__main__][INFO] - start the experiment. the settings are as follows
+[2024-10-21 05:36:23,018][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'val_size_list': [2000, 4000, 8000, 16000, 32000]}}
+[2024-10-21 05:37:06,341][__main__][INFO] - behavior=cascade, val_size=2000: 100% 1000/1000 [00:41<00:00, 24.02it/s]
+[2024-10-21 05:37:57,331][__main__][INFO] - behavior=cascade, val_size=4000: 100% 1000/1000 [00:50<00:00, 19.64it/s]
+[2024-10-21 05:39:41,952][__main__][INFO] - behavior=cascade, val_size=8000: 100% 1000/1000 [01:44<00:00,  9.56it/s]
+[2024-10-21 05:42:18,489][__main__][INFO] - behavior=cascade, val_size=16000: 100% 1000/1000 [02:36<00:00,  6.39it/s]
+[2024-10-21 05:46:57,918][__main__][INFO] - behavior=cascade, val_size=32000: 100% 1000/1000 [04:39<00:00,  3.58it/s]
+[2024-10-21 05:47:48,091][__main__][INFO] - behavior=independent, val_size=2000: 100% 1000/1000 [00:41<00:00, 23.96it/s]
+[2024-10-21 05:48:38,793][__main__][INFO] - behavior=independent, val_size=4000: 100% 1000/1000 [00:50<00:00, 19.75it/s]
+[2024-10-21 05:50:21,449][__main__][INFO] - behavior=independent, val_size=8000: 100% 1000/1000 [01:42<00:00,  9.75it/s]
+[2024-10-21 05:52:48,245][__main__][INFO] - behavior=independent, val_size=16000: 100% 1000/1000 [02:26<00:00,  6.82it/s]
+[2024-10-21 05:57:23,122][__main__][INFO] - behavior=independent, val_size=32000: 100% 1000/1000 [04:34<00:00,  3.64it/s]
+[2024-10-21 05:58:13,570][__main__][INFO] - behavior=standard, val_size=2000: 100% 1000/1000 [00:41<00:00, 23.94it/s]
+[2024-10-21 05:59:06,805][__main__][INFO] - behavior=standard, val_size=4000: 100% 1000/1000 [00:53<00:00, 18.81it/s]
+[2024-10-21 06:00:51,532][__main__][INFO] - behavior=standard, val_size=8000: 100% 1000/1000 [01:44<00:00,  9.56it/s]
+[2024-10-21 06:03:18,243][__main__][INFO] - behavior=standard, val_size=16000: 100% 1000/1000 [02:26<00:00,  6.82it/s]
+[2024-10-21 06:07:47,124][__main__][INFO] - behavior=standard, val_size=32000: 100% 1000/1000 [04:28<00:00,  3.72it/s]
+[2024-10-21 06:07:53,981][__main__][INFO] - finish experiment...
