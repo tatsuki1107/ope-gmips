@@ -1,13 +1,13 @@
-[2024-10-21 09:06:22,809][__main__][INFO] - start experiment. the configure is as follow
-[2024-10-21 09:06:22,819][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'n_unobserved_cat_dim_list': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'n_cat_dim': 10, 'n_cat_per_dim': 2, 'user_behaviors': {'independent': 1.0, 'top_2_cascade': 1.0, 'cascade': 1.0, 'neighbor_1': 1.0, 'inverse_cascade': 1.0, 'standard': 1.0}, 'n_partition': 10, 'min_samples_leaf': 100, 'n_bootstrap': 10, 'max_depth': 5, 'noise_level': 0.3, 'candidate_weights': ['cascade', 'neighbor_1', 'independent', 'random_0']}}
-[2024-10-21 09:13:14,997][__main__][INFO] - n_unobserved_cat_dim=0: 100% 1000/1000 [06:48<00:00,  2.45it/s]
-[2024-10-21 09:20:07,419][__main__][INFO] - n_unobserved_cat_dim=1: 100% 1000/1000 [06:48<00:00,  2.45it/s]
-[2024-10-21 09:26:54,211][__main__][INFO] - n_unobserved_cat_dim=2: 100% 1000/1000 [06:43<00:00,  2.48it/s]
-[2024-10-21 09:33:40,557][__main__][INFO] - n_unobserved_cat_dim=3: 100% 1000/1000 [06:42<00:00,  2.48it/s]
-[2024-10-21 09:40:10,196][__main__][INFO] - n_unobserved_cat_dim=4: 100% 1000/1000 [06:26<00:00,  2.59it/s]
-[2024-10-21 09:46:40,703][__main__][INFO] - n_unobserved_cat_dim=5: 100% 1000/1000 [06:26<00:00,  2.59it/s]
-[2024-10-21 09:52:46,519][__main__][INFO] - n_unobserved_cat_dim=6: 100% 1000/1000 [06:02<00:00,  2.76it/s]
-[2024-10-21 09:59:04,292][__main__][INFO] - n_unobserved_cat_dim=7: 100% 1000/1000 [06:14<00:00,  2.67it/s]
-[2024-10-21 10:05:07,295][__main__][INFO] - n_unobserved_cat_dim=8: 100% 1000/1000 [05:59<00:00,  2.78it/s]
-[2024-10-21 10:11:10,997][__main__][INFO] - n_unobserved_cat_dim=9: 100% 1000/1000 [06:00<00:00,  2.78it/s]
-[2024-10-21 10:11:23,544][__main__][INFO] - finish experiment...
+[2024-11-07 12:07:01,412][__main__][INFO] - start experiment. the configure is as follow
+[2024-11-07 12:07:01,414][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'n_unobserved_cat_dim_list': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 'n_cat_dim': 10, 'n_cat_per_dim': 2, 'user_behaviors': {'independent': 1.0, 'top_2_cascade': 1.0, 'cascade': 1.0, 'neighbor_1': 1.0, 'inverse_cascade': 1.0, 'standard': 1.0}, 'n_partition': 10, 'min_samples_leaf': 100, 'n_bootstrap': 10, 'max_depth': 5, 'noise_level': 0.3, 'candidate_weights': ['cascade', 'neighbor_1', 'independent', 'random_0']}}
+[2024-11-07 12:19:09,426][__main__][INFO] - n_unobserved_cat_dim=0: 100% 1000/1000 [12:03<00:00,  1.38it/s]
+[2024-11-07 12:31:30,553][__main__][INFO] - n_unobserved_cat_dim=1: 100% 1000/1000 [12:17<00:00,  1.36it/s]
+[2024-11-07 12:43:10,272][__main__][INFO] - n_unobserved_cat_dim=2: 100% 1000/1000 [11:35<00:00,  1.44it/s]
+[2024-11-07 12:55:32,125][__main__][INFO] - n_unobserved_cat_dim=3: 100% 1000/1000 [12:17<00:00,  1.36it/s]
+[2024-11-07 13:07:12,125][__main__][INFO] - n_unobserved_cat_dim=4: 100% 1000/1000 [11:35<00:00,  1.44it/s]
+[2024-11-07 13:19:07,228][__main__][INFO] - n_unobserved_cat_dim=5: 100% 1000/1000 [11:51<00:00,  1.41it/s]
+[2024-11-07 13:30:25,645][__main__][INFO] - n_unobserved_cat_dim=6: 100% 1000/1000 [11:14<00:00,  1.48it/s]
+[2024-11-07 13:41:39,770][__main__][INFO] - n_unobserved_cat_dim=7: 100% 1000/1000 [11:10<00:00,  1.49it/s]
+[2024-11-07 13:53:22,855][__main__][INFO] - n_unobserved_cat_dim=8: 100% 1000/1000 [11:39<00:00,  1.43it/s]
+[2024-11-07 14:04:22,676][__main__][INFO] - n_unobserved_cat_dim=9: 100% 1000/1000 [10:55<00:00,  1.53it/s]
+[2024-11-07 14:04:38,043][__main__][INFO] - finish experiment...

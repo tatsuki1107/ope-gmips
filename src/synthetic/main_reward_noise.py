@@ -87,7 +87,7 @@ def main(cfg) -> None:
             result_df=result_df,
             xlabel="reward noise",
             img_path=result_path,
-            xscale="linear",
+            xscale="log",
         )
 
     logger.info("finish experiment...")

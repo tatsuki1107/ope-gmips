@@ -19,8 +19,8 @@ user_behavior:
 - standard
 variation:
   reward_noise_list:
-  - 0.1
   - 0.5
   - 1.0
-  - 1.5
   - 2.0
+  - 4.0
+  - 8.0

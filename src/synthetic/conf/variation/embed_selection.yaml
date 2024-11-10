@@ -1,0 +1,16 @@
+val_size_list:
+  - 2000
+  - 4000
+  - 8000
+  - 16000
+  - 32000
+n_cat_dim: 12
+n_cat_per_dim: 2
+user_behaviors:
+  # behavior: temperature degree
+  independent: 1.0
+  top_2_cascade: 1.0
+  cascade: 1.0
+  neighbor_1: 1.0
+  inverse_cascade: 1.0
+  standard: 1.0

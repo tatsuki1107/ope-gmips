@@ -1,0 +1,8 @@
+[2024-11-09 04:43:52,409][__main__][INFO] - start the experiment. the settings are as follows
+[2024-11-09 04:43:52,412][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'val_size_list': [2000, 4000, 8000, 16000, 32000], 'n_cat_dim': 12, 'n_cat_per_dim': 2, 'user_behaviors': {'independent': 1.0, 'top_2_cascade': 1.0, 'cascade': 1.0, 'neighbor_1': 1.0, 'inverse_cascade': 1.0, 'standard': 1.0}}}
+[2024-11-09 04:46:34,192][__main__][INFO] - val_size=2000: 100% 1000/1000 [02:36<00:00,  6.39it/s]
+[2024-11-09 04:51:00,908][__main__][INFO] - val_size=4000: 100% 1000/1000 [04:26<00:00,  3.75it/s]
+[2024-11-09 04:59:51,812][__main__][INFO] - val_size=8000: 100% 1000/1000 [08:50<00:00,  1.88it/s]
+[2024-11-09 05:15:33,336][__main__][INFO] - val_size=16000: 100% 1000/1000 [15:41<00:00,  1.06it/s]
+[2024-11-09 05:47:10,678][__main__][INFO] - val_size=32000: 100% 1000/1000 [31:37<00:00,  1.90s/it]
+[2024-11-09 05:47:16,742][__main__][INFO] - finish experiment...

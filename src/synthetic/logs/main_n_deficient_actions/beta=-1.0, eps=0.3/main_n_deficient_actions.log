@@ -1,0 +1,18 @@
+[2024-11-09 03:49:06,996][__main__][INFO] - start the experiment. the settings are as follows
+[2024-11-09 03:49:06,998][__main__][INFO] - {'n_val_seeds': 1000, 'val_size': 10000, 'test_size': 100000, 'dim_context': 5, 'n_unobserved_cat_dim': 0, 'n_deficient_actions_at_k': 0, 'len_list': 5, 'n_unique_actions_at_k': 20, 'n_cat_dim': 3, 'n_cat_per_dim': 2, 'beta': -1.0, 'eps': 0.3, 'reward_noise': 0.5, 'interaction_noise': 3.0, 'random_state': 12345, 'user_behavior': ['cascade', 'independent', 'standard'], 'variation': {'n_deficient_actions_at_k_list': [0, 3, 6, 9, 12]}}
+[2024-11-09 03:51:15,057][__main__][INFO] - behavior=cascade, n_deficient_actions=0: 100% 1000/1000 [02:06<00:00,  7.91it/s]
+[2024-11-09 03:53:21,042][__main__][INFO] - behavior=cascade, n_deficient_actions=15: 100% 1000/1000 [02:04<00:00,  8.03it/s]
+[2024-11-09 03:55:27,701][__main__][INFO] - behavior=cascade, n_deficient_actions=30: 100% 1000/1000 [02:05<00:00,  8.00it/s]
+[2024-11-09 03:57:34,943][__main__][INFO] - behavior=cascade, n_deficient_actions=45: 100% 1000/1000 [02:05<00:00,  7.96it/s]
+[2024-11-09 03:59:40,274][__main__][INFO] - behavior=cascade, n_deficient_actions=60: 100% 1000/1000 [02:03<00:00,  8.08it/s]
+[2024-11-09 04:01:43,994][__main__][INFO] - behavior=independent, n_deficient_actions=0: 100% 1000/1000 [01:54<00:00,  8.70it/s]
+[2024-11-09 04:03:51,956][__main__][INFO] - behavior=independent, n_deficient_actions=15: 100% 1000/1000 [02:06<00:00,  7.93it/s]
+[2024-11-09 04:05:57,863][__main__][INFO] - behavior=independent, n_deficient_actions=30: 100% 1000/1000 [02:03<00:00,  8.07it/s]
+[2024-11-09 04:08:03,163][__main__][INFO] - behavior=independent, n_deficient_actions=45: 100% 1000/1000 [02:03<00:00,  8.09it/s]
+[2024-11-09 04:10:06,557][__main__][INFO] - behavior=independent, n_deficient_actions=60: 100% 1000/1000 [02:01<00:00,  8.22it/s]
+[2024-11-09 04:12:09,723][__main__][INFO] - behavior=standard, n_deficient_actions=0: 100% 1000/1000 [01:54<00:00,  8.72it/s]
+[2024-11-09 04:14:19,047][__main__][INFO] - behavior=standard, n_deficient_actions=15: 100% 1000/1000 [02:07<00:00,  7.83it/s]
+[2024-11-09 04:16:25,023][__main__][INFO] - behavior=standard, n_deficient_actions=30: 100% 1000/1000 [02:04<00:00,  8.05it/s]
+[2024-11-09 04:18:28,998][__main__][INFO] - behavior=standard, n_deficient_actions=45: 100% 1000/1000 [02:02<00:00,  8.18it/s]
+[2024-11-09 04:20:35,286][__main__][INFO] - behavior=standard, n_deficient_actions=60: 100% 1000/1000 [02:04<00:00,  8.03it/s]
+[2024-11-09 04:20:42,205][__main__][INFO] - finish experiment...

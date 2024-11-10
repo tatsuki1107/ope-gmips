@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 ope_estimators = [
     MIPS(estimator_name="MSIPS"),
     MIPS(estimator_name="MIIPS"),
+    SNIPS(estimator_name="snRIPS"),
     MIPS(estimator_name="MRIPS"),
 ]
 
@@ -61,7 +62,8 @@ def main(cfg) -> None:
         )
         # calculate ground truth policy value (on policy)
         test_data = dataset.obtain_batch_bandit_feedback(n_rounds=cfg.test_size, is_online=True)
-        policy_value = test_data["expected_reward_factual"].sum(1).mean()
+        position_wise_policy_values = test_data["expected_reward_factual"].mean(0)
+        policy_value = position_wise_policy_values.sum()
 
         message = f"n_unobserved_cat_dim={n_unobserved_cat_dim}"
         tqdm_ = tqdm(range(cfg.n_val_seeds), desc=message, bar_format=TQDM_FORMAT)
@@ -77,7 +79,7 @@ def main(cfg) -> None:
                 # define tuning estimators before ope
                 ope_estimators_tune = [
                     UserBehaviorTree(
-                        approximate_policy_value=policy_value,
+                        position_wise_policy_values=position_wise_policy_values,
                         estimator=SNIPS(estimator_name="snAIPS (w/UBT)"),
                         param_name="estimated_user_behavior",
                         dataset=dataset,
