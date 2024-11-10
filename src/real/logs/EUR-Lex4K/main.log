@@ -1,8 +1,8 @@
-[2024-11-07 06:25:32,572][__main__][INFO] - start the experiment. the settings are as follows
-[2024-11-07 06:25:32,574][__main__][INFO] - {'dataset_name': 'EUR-Lex4K', 'n_val_seeds': 1000, 'dim_context': 10, 'n_unique_action_at_k': 20, 'len_list': 5, 'n_cat_dim': 15, 'n_cat_per_dim': 3, 'random_state': 12345, 'beta': -1.0, 'eps': 0.3, 'val_size_list': [1500, 3000, 6000, 12000], 'user_behaviors': {'top_2_cascade': 1.0, 'cascade': 1.0, 'neighbor_1': 1.0, 'inverse_cascade': 1.0, 'random_1': 1.0, 'random_2': 1.0, 'standard': 1.0}, 'n_partition': 10, 'min_samples_leaf': 100, 'n_bootstrap': 10, 'max_depth': 5, 'noise_level': 0.3, 'candidate_weights': ['random_0', 'independent', 'top_2_cascade', 'neighbor_1', 'cascade']}
-[2024-11-07 06:25:50,807][__main__][INFO] - policy value: 1.402141794984364
-[2024-11-07 06:27:14,619][__main__][INFO] - data=EUR-Lex4K, val_size=1500: 100% 1000/1000 [01:23<00:00, 11.93it/s]
-[2024-11-07 06:29:52,501][__main__][INFO] - data=EUR-Lex4K, val_size=3000: 100% 1000/1000 [02:37<00:00,  6.33it/s]
-[2024-11-07 06:35:04,732][__main__][INFO] - data=EUR-Lex4K, val_size=6000: 100% 1000/1000 [05:12<00:00,  3.20it/s]
-[2024-11-07 06:44:46,204][__main__][INFO] - data=EUR-Lex4K, val_size=12000: 100% 1000/1000 [09:41<00:00,  1.72it/s]
-[2024-11-07 06:44:52,112][__main__][INFO] - finish experiment...
+[2024-11-08 05:33:07,340][__main__][INFO] - start the experiment. the settings are as follows
+[2024-11-08 05:33:07,350][__main__][INFO] - {'dataset_name': 'EUR-Lex4K', 'n_val_seeds': 1000, 'dim_context': 10, 'n_unique_action_at_k': 20, 'len_list': 5, 'n_cat_dim': 15, 'n_cat_per_dim': 3, 'random_state': 12345, 'beta': -1.0, 'eps': 0.3, 'val_size_list': [1500, 3000, 6000, 12000], 'user_behaviors': {'top_2_cascade': 1.0, 'cascade': 1.0, 'neighbor_1': 1.0, 'inverse_cascade': 1.0, 'random_1': 1.0, 'random_2': 1.0, 'standard': 1.0}, 'n_partition': 10, 'min_samples_leaf': 100, 'n_bootstrap': 10, 'max_depth': 5, 'noise_level': 0.3, 'candidate_weights': ['random_0', 'independent', 'top_2_cascade', 'neighbor_1', 'cascade']}
+[2024-11-08 05:33:31,223][__main__][INFO] - policy value: 1.3978175066489842
+[2024-11-08 05:35:05,182][__main__][INFO] - data=EUR-Lex4K, val_size=1500: 100% 1000/1000 [01:33<00:00, 10.64it/s]
+[2024-11-08 05:37:48,354][__main__][INFO] - data=EUR-Lex4K, val_size=3000: 100% 1000/1000 [02:43<00:00,  6.13it/s]
+[2024-11-08 05:42:52,448][__main__][INFO] - data=EUR-Lex4K, val_size=6000: 100% 1000/1000 [05:04<00:00,  3.29it/s]
+[2024-11-08 05:52:35,372][__main__][INFO] - data=EUR-Lex4K, val_size=12000: 100% 1000/1000 [09:42<00:00,  1.72it/s]
+[2024-11-08 05:52:41,717][__main__][INFO] - finish experiment...

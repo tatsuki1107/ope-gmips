@@ -1,17 +1,18 @@
 dataset_name: "EUR-Lex4K" # EUR-Lex4K or "RCV1-2K"
-n_val_seeds: 100
+n_val_seeds: 1000
 dim_context: 10
-reward_std: 0.5
 n_unique_action_at_k: 20
 len_list: 5
+n_cat_dim: 15
+n_cat_per_dim: 3
 random_state: 12345
-beta: 1.0
+beta: -1.0
 eps: 0.3
 val_size_list:
   - 1500
   - 3000
-  #- 6000
-  #- 12000
+  - 6000
+  - 12000
 user_behaviors:
   # behavior: temperature degree
   top_2_cascade: 1.0
@@ -31,24 +32,9 @@ noise_level: 0.3
 candidate_weights:
   - "random_0"
   - "independent"
-  - "cascade"
-  - "standard"
+  - "top_2_cascade"
   - "neighbor_1"
-
-# NNAbstractionLearner
-n_cat_dim: 5
-n_cat_per_dim: 2
-hidden_size: 10
-learning_rate: 0.00001
-num_epochs: 10
-batch_size: 10
-weight_decay: 0.01
-## Dimension of Embedding Selection
-n_cat_dim_candidates:
-  - 3
-  - 5
-  - 7
-  - 9
+  - "cascade"
 
 hydra:
   run:

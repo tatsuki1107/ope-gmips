@@ -9,13 +9,12 @@ import pandas as pd
 from tqdm import tqdm
 
 from dataset import ExtremeBanditDatasetWithActionEmbed
+from ope import EmbeddingSelectionWithSLOPE
 from ope import InversePropensityScoreForRanking as IPS
 from ope import MarginalizedIPSForRanking as MIPS
-from ope import NNAbstractionLearnerWithSLOPE
 from ope import RankingOffPolicyEvaluation
 from ope import RankingOffPolicyEvaluationWithTune
 from ope import UserBehaviorTree
-from ope.importance_weight import NNAbstractionLearner
 from ope.importance_weight import adaptive_weight
 from ope.importance_weight import marginalized_weight
 from policy import gen_eps_greedy
@@ -32,6 +31,7 @@ logger = logging.getLogger(__name__)
 ope_estimators = [
     MIPS(estimator_name="MSIPS"),
     MIPS(estimator_name="MIIPS"),
+    IPS(estimator_name="RIPS"),
     MIPS(estimator_name="MRIPS"),
 ]
 
@@ -50,7 +50,8 @@ def main(cfg) -> None:
         n_components=cfg.dim_context,
         n_actions_at_k=cfg.n_unique_action_at_k,
         len_list=cfg.len_list,
-        reward_std=cfg.reward_std,
+        n_cat_dim=cfg.n_cat_dim,
+        n_cat_per_dim=cfg.n_cat_per_dim,
         behavior_params=cfg.user_behaviors,
         beta=cfg.beta,
         random_state=cfg.random_state,
@@ -58,7 +59,8 @@ def main(cfg) -> None:
 
     # calculate ground truth policy value (on policy)
     action_dist = gen_eps_greedy(dataset.base_train_expected_rewards, eps=cfg.eps)
-    policy_value = dataset.calc_on_policy_policy_value(action_dist=action_dist)
+    position_wise_policy_values = dataset.calc_on_policy_policy_value(action_dist=action_dist)
+    policy_value = position_wise_policy_values.sum()
     logger.info(f"policy value: {policy_value}")
 
     result_df_list = []
@@ -74,54 +76,18 @@ def main(cfg) -> None:
             action_dist = gen_eps_greedy(expected_reward=val_data["evaluation_policy_logit"], eps=cfg.eps)
 
             if seed % 100 == 0:
-                # learn and obtain the action embedding
-                abstraction_learner = NNAbstractionLearner(
-                    model_name="ActionEmbeddingModel",
-                    dim_context=cfg.dim_context,
-                    n_actions_at_k=cfg.n_unique_action_at_k,
-                    len_list=cfg.len_list,
-                    n_cat_dim=cfg.n_cat_dim,
-                    n_cat_per_dim=cfg.n_cat_per_dim,
-                    hidden_size=cfg.hidden_size,
-                    learning_rate=cfg.learning_rate,
-                    num_epochs=cfg.num_epochs,
-                    batch_size=cfg.batch_size,
-                    weight_decay=cfg.weight_decay,
-                    loss_img_path=log_path / "abstraction_loss.png",
-                    random_state=cfg.random_state,
-                )
-                unique_action_embeddings, _ = abstraction_learner.fit_predict(
-                    context=val_data["context"],
-                    action=val_data["action"],
-                    pscore=val_data["pscore"],
-                    action_id_at_k=val_data["action_id_at_k"],
-                    is_discrete=True,
-                )
-
                 # define tuning estimators before ope
                 ope_estimators_tune = [
-                    NNAbstractionLearnerWithSLOPE(
-                        model_name="ActionEmbeddingModel",
-                        dim_context=cfg.dim_context,
-                        n_actions_at_k=cfg.n_unique_action_at_k,
-                        len_list=cfg.len_list,
-                        n_cat_dim=cfg.n_cat_dim,
-                        n_cat_per_dim=cfg.n_cat_per_dim,
-                        hidden_size=cfg.hidden_size,
-                        learning_rate=cfg.learning_rate,
-                        num_epochs=cfg.num_epochs,
-                        batch_size=cfg.batch_size,
-                        weight_decay=cfg.weight_decay,
-                        loss_img_path=log_path / "abstraction_loss_slope.png",
-                        random_state=cfg.random_state,
+                    EmbeddingSelectionWithSLOPE(
                         estimator=MIPS(estimator_name="MRIPS (w/SLOPE)"),
-                        param_name="estimated_action_embedding",
-                        hyper_param=cfg.n_cat_dim_candidates,
+                        param_name="action_embed_dim",
+                        hyper_param=np.arange(cfg.n_cat_dim),
                         lower_bound_func=estimate_student_t_lower_bound,
                         weight_func=marginalized_weight,
+                        tuning_method="exact_scalar",
                     ),
                     UserBehaviorTree(
-                        approximate_policy_value=policy_value,
+                        position_wise_policy_values=position_wise_policy_values,
                         estimator=IPS(estimator_name="AIPS (w/UBT)"),
                         param_name="estimated_user_behavior",
                         dataset=dataset,
@@ -137,7 +103,7 @@ def main(cfg) -> None:
                     ),
                 ]
                 ope_tune = RankingOffPolicyEvaluationWithTune(
-                    ope_estimators_tune=[ope_estimators_tune[1]],
+                    ope_estimators_tune=ope_estimators_tune,
                 )
                 estimated_policy_values_with_tune = ope_tune.estimate_policy_values_with_tune(
                     bandit_feedback=val_data.copy(), action_dist=action_dist
@@ -146,12 +112,6 @@ def main(cfg) -> None:
                 estimated_policy_values_with_tune = ope_tune.estimate_policy_values_with_best_param(
                     bandit_feedback=val_data.copy(), action_dist=action_dist
                 )
-
-            val_data["unique_action_context"] = unique_action_embeddings
-            val_data["action_context"] = unique_action_embeddings[
-                np.arange(val_data["len_list"])[None, :], val_data["action_id_at_k"]
-            ]
-            val_data["observed_cat_dim"] = np.arange(cfg.n_cat_dim)
 
             # off policy evaluation
             ope = RankingOffPolicyEvaluation(
