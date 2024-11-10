@@ -32,8 +32,10 @@ class InversePropensityScoreForRanking(BaseOffPolicyEstimator):
         Args:
             reward: np.ndarray
                 reward matrix of shape (n_rounds, len_list)
+
             alpha: np.ndarray
-                action choice matrix of shape (n_rounds, len_list)
+                action choice matrix of shape (len_list,)
+
             weight: np.ndarray
                 importance weight matrix of shape (n_rounds, len_list)
 
@@ -48,8 +50,10 @@ class InversePropensityScoreForRanking(BaseOffPolicyEstimator):
         Args:
             reward: np.ndarray
                 reward matrix of shape (n_rounds, len_list)
+
             alpha: np.ndarray
-                action choice matrix of shape (n_rounds, len_list)
+                action choice matrix of shape (len_list,)
+
             weight: np.ndarray
                 importance weight matrix of shape (n_rounds, len_list)
 
@@ -58,6 +62,55 @@ class InversePropensityScoreForRanking(BaseOffPolicyEstimator):
         """
 
         return self._estimate_round_rewards(reward=reward, alpha=alpha, weight=weight).mean()
+
+    def estimate_position_wise_round_rewards(
+        self, reward: np.ndarray, alpha: np.ndarray, weight: np.ndarray, position: int
+    ) -> np.ndarray:
+        """Estimate position-wise and round-wise (or sample-wise) rewards.
+
+        Args:
+            reward: np.ndarray
+                reward matrix of shape (n_rounds, len_list)
+
+            alpha: np.ndarray
+                action choice matrix of shape (len_list,)
+
+            weight: np.ndarray
+                importance weight matrix of shape (n_rounds, len_list)
+
+            position: int
+                position to estimate the policy value.
+
+        Returns:
+            np.ndarray: estimated position-wise and round-wise rewards.
+        """
+        return (weight * alpha * reward)[:, position]
+
+    def estimate_position_wise_policy_value(
+        self, reward: np.ndarray, alpha: np.ndarray, weight: np.ndarray, position: int
+    ) -> np.ndarray:
+        """Estimate the position-wise policy value of evaluation policy.
+
+        Args:
+            reward: np.ndarray
+                reward matrix of shape (n_rounds, len_list)
+
+            alpha: np.ndarray
+                action choice matrix of shape (len_list,)
+
+            weight: np.ndarray
+                importance weight matrix of shape (n_rounds, len_list)
+
+            position: int
+                position to estimate the policy value.
+
+        Returns:
+            np.float64: estimated position-wise policy value.
+        """
+
+        return self.estimate_position_wise_round_rewards(
+            reward=reward, alpha=alpha, weight=weight, position=position
+        ).mean()
 
     def estimate_interval(self):
         pass
@@ -86,7 +139,7 @@ class SelfNormalizedIPSForRanking(InversePropensityScoreForRanking):
                 reward matrix of shape (n_rounds, len_list)
 
             alpha: np.ndarray
-                action choice matrix of shape (n_rounds, len_list)
+                action choice matrix of shape (len_list,)
 
             weight: np.ndarray
                 importance weight matrix of shape (n_rounds, len_list)
@@ -96,6 +149,54 @@ class SelfNormalizedIPSForRanking(InversePropensityScoreForRanking):
         """
 
         return (weight * alpha * reward / weight.mean(0)).sum(1)
+
+    def estimate_position_wise_round_rewards(
+        self, reward: np.ndarray, alpha: np.ndarray, weight: np.ndarray, position: int
+    ) -> np.ndarray:
+        """Estimate position-wise and round-wise (or sample-wise) rewards.
+
+        Args:
+            reward: np.ndarray
+                reward matrix of shape (n_rounds, len_list)
+
+            alpha: np.ndarray
+                action choice matrix of shape (len_list,)
+
+            weight: np.ndarray
+                importance weight matrix of shape (n_rounds, len_list)
+
+            position: int
+                position to estimate the policy value.
+
+        Returns:
+            np.ndarray: estimated position-wise and round-wise rewards.
+        """
+        return (weight * alpha * reward / weight.mean(0))[:, position]
+
+    def estimate_position_wise_policy_value(
+        self, reward: np.ndarray, alpha: np.ndarray, weight: np.ndarray, position: int
+    ) -> np.ndarray:
+        """Estimate the position-wise policy value of evaluation policy.
+
+        Args:
+            reward: np.ndarray
+                reward matrix of shape (n_rounds, len_list)
+
+            alpha: np.ndarray
+                action choice matrix of shape (len_list,)
+
+            weight: np.ndarray
+                importance weight matrix of shape (n_rounds, len_list)
+
+            position: int
+                position to estimate the policy value.
+
+        Returns:
+            np.float64: estimated position-wise policy value.
+        """
+        return self.estimate_position_wise_round_rewards(
+            reward=reward, alpha=alpha, weight=weight, position=position
+        ).mean()
 
 
 @dataclass
@@ -123,7 +224,7 @@ class MarginalizedIPSForRanking(InversePropensityScoreForRanking):
                 reward matrix of shape (n_rounds, len_list)
 
             alpha: np.ndarray
-                action choice matrix of shape (n_rounds, len_list)
+                action choice matrix of shape (len_list,)
 
             weight: np.ndarray
                 marginalized importance weight matrix by action embeddings of shape (n_rounds, len_list)
@@ -139,5 +240,43 @@ class MarginalizedIPSForRanking(InversePropensityScoreForRanking):
         """
 
         r_hat = self._estimate_round_rewards(reward=reward, alpha=alpha, weight=weight)
+        cnf = lower_bound_func(r_hat, delta=delta, with_dev=True)
+        return np.mean(r_hat), cnf
+
+    def estimate_position_wise_policy_value_with_dev(
+        self,
+        reward: np.ndarray,
+        alpha: np.ndarray,
+        weight: np.ndarray,
+        position: int,
+        lower_bound_func: Callable,
+        delta: float = 0.05,
+    ) -> tuple[np.float64]:
+        """Estimate the policy value of evaluation policy with confidence interval for position k.
+
+        Args:
+            reward: np.ndarray
+                reward matrix of shape (n_rounds, len_list)
+
+            alpha: np.ndarray
+                action choice matrix of shape (len_list,)
+
+            weight: np.ndarray
+                marginalized importance weight matrix by action embeddings of shape (n_rounds, len_list)
+
+            position: int
+                position to estimate the policy value.
+
+            lower_bound_func: Callable
+                function to compute the lower bound of the confidence interval.
+
+            delta: float = 0.05
+                confidence level.
+
+        Returns:
+            tuple[np.float64]: estimated policy value and confidence interval.
+        """
+
+        r_hat = self.estimate_position_wise_round_rewards(reward=reward, alpha=alpha, weight=weight, position=position)
         cnf = lower_bound_func(r_hat, delta=delta, with_dev=True)
         return np.mean(r_hat), cnf

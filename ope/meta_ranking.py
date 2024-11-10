@@ -3,8 +3,8 @@ from typing import Optional
 
 import numpy as np
 
+from ope import EmbeddingSelectionWithSLOPE
 from ope import InversePropensityScoreForRanking as IPS
-from ope import NNAbstractionLearnerWithSLOPE
 from ope.importance_weight import adaptive_weight
 from ope.importance_weight import marginalized_weight
 from ope.importance_weight import vanilla_weight
@@ -121,7 +121,7 @@ class RankingOffPolicyEvaluationWithTune:
             list of OPE estimators with hyperparameter tuning.
     """
 
-    ope_estimators_tune: list[NNAbstractionLearnerWithSLOPE]
+    ope_estimators_tune: list[EmbeddingSelectionWithSLOPE]
 
     def __post_init__(self) -> None:
         self.is_exist_best_param = False

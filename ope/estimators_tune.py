@@ -1,5 +1,6 @@
 from abc import ABCMeta
 from abc import abstractmethod
+from collections import defaultdict
 from collections import deque
 from dataclasses import dataclass
 from typing import Callable
@@ -11,7 +12,6 @@ from sklearn.base import ClassifierMixin
 from sklearn.utils import check_random_state
 
 from ope import MarginalizedIPSForRanking
-from ope.importance_weight import NNAbstractionLearner
 from ope.importance_weight import adaptive_weight
 from ope.importance_weight import vanilla_weight
 from policy import gen_eps_greedy
@@ -44,145 +44,6 @@ class BaseOffPolicyEstimatorWithTune(metaclass=ABCMeta):
 
 
 @dataclass
-class NNAbstractionLearnerWithSLOPE(BaseOffPolicyEstimatorWithTune, NNAbstractionLearner):
-    """Neural network abstraction learner with SLOPE estimator class.
-
-    Args:
-        hyper_param: np.ndarray
-            hyperparameter (the number of category dimension) candidates.
-
-        lower_bound_func: Callable[[np.ndarray, float, bool], np.float64]
-            function to compute the lower bound of the estimated policy value.
-
-        weight_func: Callable[[dict, np.ndarray], np.ndarray]
-            function to compute the importance weight.
-
-        alpha: Optional[np.ndarray] = None
-            alpha parameter for rankings.
-
-        delta: float = 0.05
-            confidence level.
-    """
-
-    hyper_param: np.ndarray
-    lower_bound_func: Callable[[np.ndarray, float, bool], np.float64]
-    weight_func: Callable[[dict, np.ndarray], np.ndarray]
-    alpha: Optional[np.ndarray] = None
-    delta: float = 0.05
-
-    def __post_init__(self) -> None:
-        self.best_unique_action_context = None
-
-    def estimate_policy_value_with_tune(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
-        """Estimate the policy value of evaluation policy with hyperparameter tuning.
-
-        Args:
-            bandit_feedback: dict
-                bandit feedback data.
-
-            action_dist: np.ndarray
-                action distribution of the evaluation policy.
-
-        Returns:
-            np.float64: estimated policy value.
-        """
-
-        if self.alpha is None:
-            self.alpha = np.ones(bandit_feedback["len_list"])
-
-        C = np.sqrt(6) - 1
-        unique_action_context_dict = {}
-        theta_dict_for_sort, cnf_dict_for_sort = {}, {}
-        for id, n_cat_dim in enumerate(self.hyper_param):
-            self._init_model(n_cat_dim=n_cat_dim)
-            unique_action_context, action_context = self.fit_predict(
-                context=bandit_feedback["context"],
-                action=bandit_feedback["action"],
-                pscore=bandit_feedback["pscore"],
-                action_id_at_k=bandit_feedback["action_id_at_k"],
-            )
-            bandit_feedback["unique_action_context"] = unique_action_context
-            bandit_feedback["action_context"] = action_context
-            bandit_feedback["observed_cat_dim"] = np.arange(n_cat_dim)
-
-            importance_weight = self.weight_func(
-                data=bandit_feedback,
-                action_dist=action_dist,
-                behavior_assumption=self.estimator.behavior_assumption,
-            )
-
-            theta, cnf = self.estimator.estimate_policy_value_with_dev(
-                reward=bandit_feedback["reward"],
-                alpha=self.alpha,
-                weight=importance_weight,
-                lower_bound_func=self.lower_bound_func,
-                delta=self.delta,
-            )
-
-            cnf_dict_for_sort[id] = cnf
-            theta_dict_for_sort[id] = theta
-            unique_action_context_dict[id] = unique_action_context
-
-        theta_list, cnf_list = [], []
-        sorted_idx_list = [i for i, _ in sorted(cnf_dict_for_sort.items(), key=lambda k: k[1], reverse=True)]
-        for i, idx in enumerate(sorted_idx_list):
-            cnf_i = cnf_dict_for_sort[idx]
-            theta_i = theta_dict_for_sort[idx]
-            if len(theta_list) < 1:
-                theta_list.append(theta_i), cnf_list.append(cnf_i)
-            else:
-                theta_j, cnf_j = np.array(theta_list), np.array(cnf_list)
-                if (np.abs(theta_j - theta_i) <= cnf_i + C * cnf_j).all():
-                    theta_list.append(theta_i), cnf_list.append(cnf_i)
-                else:
-                    best_idx = sorted_idx_list[i - 1]
-                    self.best_unique_action_context = unique_action_context_dict[best_idx]
-                    return theta_dict_for_sort[best_idx]
-
-        self.best_unique_action_context = unique_action_context_dict[sorted_idx_list[-1]]
-        return theta_dict_for_sort[sorted_idx_list[-1]]
-
-    def estimate_policy_value_with_best_param(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
-        """Estimate the policy value of evaluation policy with the best hyperparameter.
-
-        Args:
-            bandit_feedback: dict
-                bandit feedback data.
-
-            action_dist: np.ndarray
-                action distribution of the evaluation policy
-
-        Returns:
-            np.float64: estimated policy value.
-        """
-
-        if self.best_unique_action_context is None:
-            raise ValueError(
-                "best_unique_action_context is not found. Please run estimate_policy_value_with_tune method."
-            )
-
-        bandit_feedback["unique_action_context"] = self.best_unique_action_context
-        bandit_feedback["action_context"] = self.best_unique_action_context[
-            np.arange(bandit_feedback["len_list"])[None, :], bandit_feedback["action_id_at_k"]
-        ]
-
-        bandit_feedback["observed_cat_dim"] = np.arange(self.best_unique_action_context.shape[2])
-        importance_weight = self.weight_func(
-            data=bandit_feedback,
-            action_dist=action_dist,
-            behavior_assumption=self.estimator.behavior_assumption,
-        )
-
-        estimated_value = self.estimator.estimate_policy_value(
-            reward=bandit_feedback["reward"],
-            alpha=self.alpha,
-            weight=importance_weight,
-        )
-
-        return estimated_value
-
-
-@dataclass
 class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
     """Selection by Lepski's principle for Off-Policy Evaluation (SLOPE) estimator class.
 
@@ -207,6 +68,9 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
 
         min_combination: int
             minimum number of combinations of the hyperparameters.
+
+        scalar_skip: int
+            number of scalar values to skip.
 
         delta: float
             confidence level.
@@ -239,6 +103,8 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
         if self.estimator.estimator_name not in MARGINALIZED_ESTIMATORS_WITH_SLOPE_TO_BEHAVIOR:
             raise ValueError(f"estimator_name must be one of {MARGINALIZED_ESTIMATORS_WITH_SLOPE_TO_BEHAVIOR.keys()}")
 
+        self.best_param_at_k = {}
+
     def estimate_policy_value_with_tune(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
         """Estimate the policy value of evaluation policy with hyperparameter tuning.
 
@@ -269,8 +135,8 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
 
         return estimated_policy_value
 
-    def _tune_combination_with_greedy_pruning(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
-        """Tune the hyperparameter with greedy pruning.
+    def estimate_policy_value_with_best_param(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
+        """Estimate the policy value of evaluation policy with the best hyperparameter.
 
         Args:
             bandit_feedback: dict
@@ -282,23 +148,75 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
         Returns:
             np.float64: estimated policy value.
         """
+        if not self.best_param_at_k:
+            raise ValueError("best_param_at_k is not found. Please run estimate_policy_value_with_tune method.")
+
+        if self.alpha is None:
+            self.alpha = np.ones(bandit_feedback["len_list"])
+
+        estimated_policy_value = 0.0
+        for pos_, optimal_best_param in self.best_param_at_k.items():
+            if self.tuning_method == "exact_scalar":
+                kwargs = {self.param_name: self.hyper_param[optimal_best_param:]}
+
+            elif self.tuning_method == "greedy_combination":
+                kwargs = {self.param_name: optimal_best_param}
+
+            else:
+                raise NotImplementedError(f"tuning_method={self.tuning_method} is not implemented yet.")
+
+            importance_weight = self.weight_func(
+                data=bandit_feedback,
+                action_dist=action_dist,
+                behavior_assumption=self.estimator.behavior_assumption,
+                **kwargs,
+            )
+            estimated_position_wise_policy_value = self.estimator.estimate_position_wise_policy_value(
+                reward=bandit_feedback["reward"],
+                alpha=self.alpha,
+                weight=importance_weight,
+                position=pos_,
+            )
+            estimated_policy_value += estimated_position_wise_policy_value
+
+        return estimated_policy_value
+
+    def _tune_combination_with_greedy_pruning_pos(
+        self, bandit_feedback: dict, action_dist: np.ndarray, position: int
+    ) -> np.float64:
+        """Tune the hyperparameter with greedy pruning.
+
+        Args:
+            bandit_feedback: dict
+                bandit feedback data.
+
+            action_dist: np.ndarray
+                action distribution of the evaluation policy.
+
+            position: int
+                position of the recommendation list.
+
+        Returns:
+            np.float64: estimated policy value.
+        """
 
         theta_list, cnf_list, param_list = [], [], []
         current_param, C = self.hyper_param.copy(), np.sqrt(6) - 1
         bandit_feedback[self.param_name] = current_param
 
         # init
-        kwargs = {self.param_name: current_param, "pi_a_x_e_estimator": self.weight_estimator}
+        kwargs = {self.param_name: current_param}
         importance_weight = self.weight_func(
             data=bandit_feedback,
             action_dist=action_dist,
             behavior_assumption=self.estimator.behavior_assumption,
             **kwargs,
         )
-        theta, cnf = self.estimator.estimate_policy_value_with_dev(
+        theta, cnf = self.estimator.estimate_position_wise_policy_value_with_dev(
             reward=bandit_feedback["reward"],
             alpha=self.alpha,
             weight=importance_weight,
+            position=position,
             lower_bound_func=self.lower_bound_func,
             delta=self.delta,
         )
@@ -306,6 +224,7 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
 
         current_param_set = set(current_param)
         param_list.append(current_param_set)
+        best_param = None
         while len(current_param_set) > self.min_combination:
             theta_dict_, cnf_dict_, d_dict_, param_dict_ = {}, {}, {}, {}
             for i, d in enumerate(current_param_set):
@@ -319,10 +238,11 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
                     behavior_assumption=self.estimator.behavior_assumption,
                     **kwargs,
                 )
-                theta, cnf = self.estimator.estimate_policy_value_with_dev(
+                theta, cnf = self.estimator.estimate_position_wise_policy_value_with_dev(
                     reward=bandit_feedback["reward"],
                     alpha=self.alpha,
                     weight=importance_weight,
+                    position=position,
                     lower_bound_func=self.lower_bound_func,
                     delta=self.delta,
                 )
@@ -337,16 +257,39 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
                 excluded_dim, param_i = d_dict_[idx], param_dict_[idx]
                 theta_i, cnf_i = theta_dict_[idx], cnf_dict_[idx]
                 theta_j, cnf_j = np.array(theta_list), np.array(cnf_list)
-                self.best_param = param_list[-1]
+                best_param = param_list[-1]
                 if (np.abs(theta_j - theta_i) <= cnf_i + C * cnf_j).all():
                     theta_list.append(theta_i), cnf_list.append(cnf_i)
                     param_list.append(param_i)
                 else:
-                    return theta_j[-1]
+                    return theta_j[-1], list(best_param)
 
             current_param_set.remove(excluded_dim)
 
-        return theta_j[-1]
+        return theta_j[-1], list(best_param)
+
+    def _tune_combination_with_greedy_pruning(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
+        """Tune the hyperparameter with greedy pruning.
+
+        Args:
+            bandit_feedback: dict
+                bandit feedback data.
+
+            action_dist: np.ndarray
+                action distribution of the evaluation policy.
+
+        Returns:
+            np.float64: estimated policy value.
+        """
+        estimated_policy_value = 0.0
+        for pos_ in range(bandit_feedback["len_list"]):
+            position_wise_estimated_value, best_param = self._tune_combination_with_greedy_pruning_pos(
+                bandit_feedback=bandit_feedback, action_dist=action_dist, position=pos_
+            )
+            estimated_policy_value += position_wise_estimated_value
+            self.best_param_at_k[pos_] = best_param
+
+        return estimated_policy_value
 
     def _tune_combination_with_exact_pruning(self, bandit_feedback: dict, action_dist: np.ndarray):
         pass
@@ -364,45 +307,53 @@ class EmbeddingSelectionWithSLOPE(BaseOffPolicyEstimatorWithTune):
         Returns:
             np.float64: estimated policy value.
         """
+        estimated_policy_value = 0.0
+        for pos_ in range(bandit_feedback["len_list"]):
+            C = np.sqrt(6) - 1
+            theta_dict_for_sort, cnf_dict_for_sort, unobs_cat_dim_for_sort = {}, {}, {}
+            for id, unobs_cat_dim in enumerate(self.hyper_param):
+                kwargs = {self.param_name: self.hyper_param[unobs_cat_dim:]}
+                importance_weight = self.weight_func(
+                    data=bandit_feedback,
+                    action_dist=action_dist,
+                    behavior_assumption=self.estimator.behavior_assumption,
+                    **kwargs,
+                )
 
-        C = np.sqrt(6) - 1
-        theta_dict_for_sort, cnf_dict_for_sort = {}, {}
-        for id, unobs_cat_dim in enumerate(self.hyper_param):
-            kwargs = {self.param_name: self.hyper_param[unobs_cat_dim:], "pi_a_x_e_estimator": self.weight_estimator}
-            importance_weight = self.weight_func(
-                data=bandit_feedback,
-                action_dist=action_dist,
-                behavior_assumption=self.estimator.behavior_assumption,
-                **kwargs,
-            )
+                theta, cnf = self.estimator.estimate_position_wise_policy_value_with_dev(
+                    reward=bandit_feedback["reward"],
+                    alpha=self.alpha,
+                    weight=importance_weight,
+                    position=pos_,
+                    lower_bound_func=self.lower_bound_func,
+                    delta=self.delta,
+                )
 
-            theta, cnf = self.estimator.estimate_policy_value_with_dev(
-                reward=bandit_feedback["reward"],
-                alpha=self.alpha,
-                weight=importance_weight,
-                lower_bound_func=self.lower_bound_func,
-                delta=self.delta,
-            )
+                cnf_dict_for_sort[id] = cnf
+                theta_dict_for_sort[id] = theta
+                unobs_cat_dim_for_sort[id] = unobs_cat_dim
 
-            cnf_dict_for_sort[id] = cnf
-            theta_dict_for_sort[id] = theta
-
-        theta_list, cnf_list = [], []
-        sorted_idx_list = [i for i, _ in sorted(cnf_dict_for_sort.items(), key=lambda k: k[1], reverse=True)]
-        for i, idx in enumerate(sorted_idx_list):
-            cnf_i = cnf_dict_for_sort[idx]
-            theta_i = theta_dict_for_sort[idx]
-            if len(theta_list) < 1:
-                theta_list.append(theta_i), cnf_list.append(cnf_i)
-            else:
-                theta_j, cnf_j = np.array(theta_list), np.array(cnf_list)
-                if (np.abs(theta_j - theta_i) <= cnf_i + C * cnf_j).all():
+            theta_list, cnf_list = [], []
+            sorted_idx_list = [i for i, _ in sorted(cnf_dict_for_sort.items(), key=lambda k: k[1], reverse=True)]
+            for i, idx in enumerate(sorted_idx_list):
+                cnf_i = cnf_dict_for_sort[idx]
+                theta_i = theta_dict_for_sort[idx]
+                if len(theta_list) < 1:
                     theta_list.append(theta_i), cnf_list.append(cnf_i)
                 else:
-                    best_idx = sorted_idx_list[i - 1]
-                    return theta_dict_for_sort[best_idx]
+                    theta_j, cnf_j = np.array(theta_list), np.array(cnf_list)
+                    if (np.abs(theta_j - theta_i) <= cnf_i + C * cnf_j).all():
+                        theta_list.append(theta_i), cnf_list.append(cnf_i)
+                    else:
+                        best_idx = sorted_idx_list[i - 1]
+                        estimated_policy_value += theta_dict_for_sort[best_idx]
+                        self.best_param_at_k[pos_] = unobs_cat_dim_for_sort[best_idx]
+                        break
 
-        return theta_dict_for_sort[sorted_idx_list[-1]]
+            estimated_policy_value += theta_dict_for_sort[sorted_idx_list[-1]]
+            self.best_param_at_k[pos_] = unobs_cat_dim_for_sort[sorted_idx_list[-1]]
+
+        return estimated_policy_value
 
 
 @dataclass
@@ -446,8 +397,8 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         dataset: BaseBanditDataset
             dataset class for bandit feedback data.
 
-        approximate_policy_value: float
-            approximate policy value of the evaluation policy.
+        position_wise_policy_values: np.ndarray
+            position-wise policy values for each position.
 
         weight_func: adaptive_weight
             function to compute the importance weight.
@@ -488,7 +439,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
     """
 
     dataset: BaseBanditDataset
-    approximate_policy_value: float
+    position_wise_policy_values: np.ndarray
     weight_func: adaptive_weight
     candidate_weights: set[str]
     eps: float
@@ -505,7 +456,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         if self.estimator.estimator_name not in ADAPTIVE_ESTIMATORS_WITH_UBT_TO_BEHAVIOR:
             raise ValueError(f"estimator_name must be one of {ADAPTIVE_ESTIMATORS_WITH_UBT_TO_BEHAVIOR.keys()}")
 
-        self.decision_boundary = dict()
+        self.decision_boundary = defaultdict(dict)
 
         self.n_candidate_weights = len(self.candidate_weights)
         self.id2behavior = {i: c for i, c in enumerate(self.candidate_weights)}
@@ -532,17 +483,20 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             np.float64: estimated policy value.
         """
 
-        estimated_user_behavior = self.fit_predict(data=bandit_feedback, action_dist=action_dist)
-        kwargs_ = {self.param_name: estimated_user_behavior}
-        importance_weight = self.weight_func(data=bandit_feedback, action_dist=action_dist, **kwargs_)
+        estimated_value = 0.0
+        for pos_ in range(self.len_list):
+            estimated_user_behavior = self.fit_predict(data=bandit_feedback, action_dist=action_dist, position=pos_)
+            kwargs_ = {self.param_name: estimated_user_behavior}
+            importance_weight = self.weight_func(data=bandit_feedback, action_dist=action_dist, **kwargs_)
 
-        estimated_value = self.estimator.estimate_policy_value(
-            weight=importance_weight, alpha=self.alpha, reward=bandit_feedback["reward"]
-        )
+            position_wise_estimated_value = self.estimator.estimate_position_wise_policy_value(
+                weight=importance_weight, alpha=self.alpha, reward=bandit_feedback["reward"], position=pos_
+            )
+            estimated_value += position_wise_estimated_value
 
         return estimated_value
 
-    def fit(self, data: dict, action_dist: np.ndarray) -> None:
+    def fit(self, data: dict, action_dist: np.ndarray, position: int) -> None:
         """Fit the User Behavior Tree model.
 
         Args:
@@ -551,13 +505,16 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
 
             action_dist: np.ndarray
                 action distribution of the evaluation policy
+
+            position: int
+                position of the ranking list.
         """
 
         self._create_input_dataset(data=data, action_dist=action_dist)
 
         # init
         node_queue = deque()
-        base_user_behavior_id = self._select_base_user_behavior()
+        base_user_behavior_id = self._select_base_user_behavior(position=position)
         node_id, depth = 0, 0
         sample_id = np.arange(self.train_size)
         bootstrap_sample_ids = {i: np.arange(self.train_size) for i in range(self.n_bootstrap)}
@@ -570,12 +527,12 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             bootstrap_sample_ids=bootstrap_sample_ids,
         )
         node_queue.append(initial_node)
-        self._update_decision_boundary(node_id=node_id, user_behavior_id=base_user_behavior_id)
-        self._update_global_pscore(node=initial_node)
+        self._update_decision_boundary(node_id=node_id, user_behavior_id=base_user_behavior_id, position=position)
+        self._update_global_pscore(node=initial_node, position=position)
 
         while len(node_queue):
             parent_node: Node = node_queue.pop()
-            split_outcomes = self._search_split_boundary(parent_node)
+            split_outcomes = self._search_split_boundary(parent_node, position=position)
 
             if split_outcomes["split_exist"]:
                 # initialize child node
@@ -596,22 +553,24 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
                     bootstrap_sample_ids=split_outcomes["right_bootstrap_sample_ids"],
                 )
                 self._update_decision_boundary(
+                    position=position,
                     node_id=left_node_id,
                     user_behavior_id=split_outcomes["left_user_behavior_id"],
                 )
                 self._update_decision_boundary(
+                    position=position,
                     node_id=right_node_id,
                     user_behavior_id=split_outcomes["right_user_behavior_id"],
                 )
-                self._update_global_pscore(left_node)
-                self._update_global_pscore(right_node)
+                self._update_global_pscore(left_node, position=position)
+                self._update_global_pscore(right_node, position=position)
 
                 # increment
                 node_queue.append(left_node)
                 node_queue.append(right_node)
                 node_id += 2
 
-    def fit_predict(self, data: dict, action_dist: np.ndarray) -> np.ndarray:
+    def fit_predict(self, data: dict, action_dist: np.ndarray, position: int) -> np.ndarray:
         """Fit the User Behavior Tree model and predict the estimated user behavior.
 
         Args:
@@ -621,83 +580,105 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             action_dist: np.ndarray
                 action distribution of the evaluation policy.
 
+            position: int
+                position of the ranking list.
+
         Returns:
             np.ndarray: array of estimated user behavior names.
         """
 
-        self.fit(data=data, action_dist=action_dist)
+        self.fit(data=data, action_dist=action_dist, position=position)
 
         estimated_user_behavior = np.array([self.id2behavior[i] for i in self.train_reward_structure])
         return estimated_user_behavior
 
     def estimate_policy_value_with_best_param(self, bandit_feedback: dict, action_dist: np.ndarray) -> np.float64:
+        """Estimate the policy value of evaluation policy with the best hyperparameter.
+
+        Args:
+            bandit_feedback: dict
+                bandit feedback data.
+
+            action_dist: np.ndarray
+                action distribution of the evaluation policy
+
+        Returns:
+            np.float64: estimated policy value.
+        """
+
         self.test_n_samples = bandit_feedback["n_rounds"]
         self.test_context = bandit_feedback["context"]
 
-        node_queue = deque()
-        user_behavior_idx = np.zeros(self.test_n_samples, dtype=int)
-        node_id, depth = 0, 0
+        estimated_policy_value = 0.0
+        for pos_ in range(self.len_list):
+            node_queue = deque()
+            user_behavior_idx = np.zeros(self.test_n_samples, dtype=int)
+            node_id, depth = 0, 0
 
-        initial_node = Node(
-            node_id=node_id,
-            sample_id=np.arange(self.test_n_samples),
-            user_behavior_id=self.decision_boundary[0]["parent_user_behavior_id"],
-            depth=depth,
-        )
+            initial_node = Node(
+                node_id=node_id,
+                sample_id=np.arange(self.test_n_samples),
+                user_behavior_id=self.decision_boundary[pos_][0]["parent_user_behavior_id"],
+                depth=depth,
+            )
 
-        node_queue.append(initial_node)
+            node_queue.append(initial_node)
 
-        while len(node_queue):
-            parent_node: Node = node_queue.pop()
-            parent_node_id = parent_node.node_id
-            parent_sample_id = parent_node.sample_id
-            parent_depth = parent_node.depth
-            parent_context = self.test_context[parent_sample_id]
+            while len(node_queue):
+                parent_node: Node = node_queue.pop()
+                parent_node_id = parent_node.node_id
+                parent_sample_id = parent_node.sample_id
+                parent_depth = parent_node.depth
+                parent_context = self.test_context[parent_sample_id]
 
-            decision_boundary = self.decision_boundary[parent_node_id]
-            split_exist = decision_boundary["split_exist"]
+                decision_boundary = self.decision_boundary[pos_][parent_node_id]
+                split_exist = decision_boundary["split_exist"]
 
-            if split_exist:
-                boundary_feature = decision_boundary["feature_dim"]
-                boundary_value = decision_boundary["feature_value"]
+                if split_exist:
+                    boundary_feature = decision_boundary["feature_dim"]
+                    boundary_value = decision_boundary["feature_value"]
 
-                left_sample_id = parent_sample_id[np.where(parent_context[:, boundary_feature] < boundary_value)]
-                right_sample_id = parent_sample_id[np.where(parent_context[:, boundary_feature] >= boundary_value)]
-                left_node = Node(
-                    node_id=node_id + 1,
-                    sample_id=left_sample_id,
-                    user_behavior_id=self.decision_boundary[node_id + 1]["parent_user_behavior_id"],
-                    depth=parent_depth + 1,
-                )
-                right_node = Node(
-                    node_id=node_id + 2,
-                    sample_id=right_sample_id,
-                    user_behavior_id=self.decision_boundary[node_id + 2]["parent_user_behavior_id"],
-                    depth=parent_depth + 1,
-                )
-                node_queue.append(left_node)
-                node_queue.append(right_node)
-                node_id += 2
-            else:
-                user_behavior_idx[parent_node.sample_id] = parent_node.user_behavior_id
+                    left_sample_id = parent_sample_id[np.where(parent_context[:, boundary_feature] < boundary_value)]
+                    right_sample_id = parent_sample_id[np.where(parent_context[:, boundary_feature] >= boundary_value)]
+                    left_node = Node(
+                        node_id=node_id + 1,
+                        sample_id=left_sample_id,
+                        user_behavior_id=self.decision_boundary[pos_][node_id + 1]["parent_user_behavior_id"],
+                        depth=parent_depth + 1,
+                    )
+                    right_node = Node(
+                        node_id=node_id + 2,
+                        sample_id=right_sample_id,
+                        user_behavior_id=self.decision_boundary[pos_][node_id + 2]["parent_user_behavior_id"],
+                        depth=parent_depth + 1,
+                    )
+                    node_queue.append(left_node)
+                    node_queue.append(right_node)
+                    node_id += 2
+                else:
+                    user_behavior_idx[parent_node.sample_id] = parent_node.user_behavior_id
 
-        estimated_user_behavior = np.array([self.id2behavior[i] for i in user_behavior_idx])
+            estimated_user_behavior = np.array([self.id2behavior[i] for i in user_behavior_idx])
 
-        kwargs_ = {self.param_name: estimated_user_behavior}
-        importance_weight = self.weight_func(data=bandit_feedback, action_dist=action_dist, **kwargs_)
+            kwargs_ = {self.param_name: estimated_user_behavior}
+            importance_weight = self.weight_func(data=bandit_feedback, action_dist=action_dist, **kwargs_)
 
-        estimated_value = self.estimator.estimate_policy_value(
-            weight=importance_weight, alpha=self.alpha, reward=bandit_feedback["reward"]
-        )
+            position_wise_estimated_value = self.estimator.estimate_position_wise_policy_value(
+                weight=importance_weight, alpha=self.alpha, reward=bandit_feedback["reward"], position=pos_
+            )
+            estimated_policy_value += position_wise_estimated_value
 
-        return estimated_value
+        return estimated_policy_value
 
-    def _search_split_boundary(self, parent_node: Node) -> dict:
+    def _search_split_boundary(self, parent_node: Node, position: int) -> dict:
         """Search the best split boundary for the User Behavior Tree.
 
         Args:
             parent_node: Node
                 parent node.
+
+            position: int
+                position of the ranking list.
 
         Returns:
             dict: best split outcome. if outcome is exist, return left and right child nodes.
@@ -719,7 +700,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         # init
         best_outcome = dict()
         best_outcome["split_exist"] = False
-        best_mse = self._calc_mse_global()
+        best_mse = self._calc_mse_global(position=position)
         best_outcome["mse"] = best_mse
 
         split_feature_dims = self.random_.choice(self.train_context.shape[1], size=self.n_partition, replace=True)
@@ -754,6 +735,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
                 parent_sample_ids=parent_bootstrap_sample_ids,
                 split_feature_dim=feature_dim,
                 split_feature_value=split_feature_value,
+                position=position,
             )
             if split_mse <= best_outcome["mse"]:
                 best_outcome["split_exist"] = True
@@ -769,6 +751,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
 
         if best_outcome["split_exist"]:
             self._update_decision_boundary(
+                position=position,
                 node_id=parent_node_id,
                 user_behavior_id=parent_user_behavior_id,
                 split_exist=True,
@@ -783,6 +766,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         parent_sample_ids: dict[int, np.ndarray],
         split_feature_dim: int,
         split_feature_value: float,
+        position: int,
     ) -> tuple:
         """Find the best user behavior for the User Behavior Tree.
 
@@ -794,7 +778,10 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
                 split feature dimension.
 
             split_feature_value: float
-                split feature value
+                split feature value.
+
+            position: int
+                position of the ranking list.
 
         Returns:
             tuple: best user behavior for left and right child nodes.
@@ -820,21 +807,23 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             right_sample_ids[i] = right_sample_id_
 
             for left_user_behavior_id in range(self.n_candidate_weights):
-                weighted_reward_[left_sample_id_] = self.estimator._estimate_round_rewards(
+                weighted_reward_[left_sample_id_] = self.estimator.estimate_position_wise_round_rewards(
                     weight=importance_weight[left_user_behavior_id][left_sample_id_],
                     alpha=self.alpha,
                     reward=reward[left_sample_id_],
+                    position=position,
                 )
 
                 for right_user_behavior_id in range(self.n_candidate_weights):
-                    weighted_reward_[right_sample_id_] = self.estimator._estimate_round_rewards(
+                    weighted_reward_[right_sample_id_] = self.estimator.estimate_position_wise_round_rewards(
                         weight=importance_weight[right_user_behavior_id][right_sample_id_],
                         alpha=self.alpha,
                         reward=reward[right_sample_id_],
+                        position=position,
                     )
                     estimated_values[left_user_behavior_id, right_user_behavior_id, i] = weighted_reward_.mean()
 
-        surrogate_mse = self._compute_surrogate_mse(estimated_values, axis=2)
+        surrogate_mse = self._compute_surrogate_mse(estimated_values, position=position, axis=2)
         best_left_user_behavior, best_right_user_behavior = np.unravel_index(
             surrogate_mse.argmin(), surrogate_mse.shape
         )
@@ -847,29 +836,46 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         )
         return split_outcome
 
-    def _calc_mse_global(self) -> None:
-        """Calculate the global mean squared error of the User Behavior Tree."""
+    def _calc_mse_global(self, position: int) -> None:
+        """
+        Calculate the global mean squared error of the User Behavior Tree.
+
+        Args:
+            position: int
+                position of the ranking list.
+
+        """
 
         estimated_values = []
         for bootstrap_data_ in self.bootstrap_dataset:
             estimated_values.append(bootstrap_data_["weighted_reward"].mean())
 
         estimated_values = np.array(estimated_values)
-        surrogate_mse = self._compute_surrogate_mse(estimated_values, axis=0)
+        surrogate_mse = self._compute_surrogate_mse(estimated_values, position=position, axis=0)
         return surrogate_mse
 
-    def _update_global_pscore(self, node: Node) -> None:
-        """Update the global propensity score of the User Behavior Tree."""
+    def _update_global_pscore(self, node: Node, position: int) -> None:
+        """
+        Update the global propensity score of the User Behavior Tree.
+
+        Args:
+            node: Node
+                node of the User Behavior Tree.
+
+            position: int
+                position of the ranking list.
+        """
 
         user_behavior_id = node.user_behavior_id
         sample_id = node.sample_id
         bootstrap_sample_ids = node.bootstrap_sample_ids
 
         self.train_reward_structure[sample_id] = user_behavior_id
-        self.train_weighted_reward[sample_id] = self.estimator._estimate_round_rewards(
+        self.train_weighted_reward[sample_id] = self.estimator.estimate_position_wise_round_rewards(
             weight=self.train_importance_weight_dict[user_behavior_id][sample_id],
             alpha=self.alpha,
             reward=self.train_reward[sample_id],
+            position=position,
         )
 
         for i, bootstrap_data_ in enumerate(self.bootstrap_dataset):
@@ -880,14 +886,16 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             )
 
             bootstrap_data_["reward_structure"][sample_id] = user_behavior_id
-            bootstrap_data_["weighted_reward"][sample_id] = self.estimator._estimate_round_rewards(
+            bootstrap_data_["weighted_reward"][sample_id] = self.estimator.estimate_position_wise_round_rewards(
                 weight=iw_dict[user_behavior_id][sample_id],
                 alpha=self.alpha,
                 reward=reward[sample_id],
+                position=position,
             )
 
     def _update_decision_boundary(
         self,
+        position: int,
         node_id: int,
         user_behavior_id: int,
         split_exist: Optional[bool] = False,
@@ -898,6 +906,9 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
         Initialize the decision boundary.
 
         Args:
+            position: int
+                position of the ranking list.
+
             node_id: int
                 node id.
 
@@ -914,15 +925,19 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
                 feature value of the split boundary.
         """
 
-        self.decision_boundary[node_id] = {
+        self.decision_boundary[position][node_id] = {
             "parent_user_behavior_id": user_behavior_id,
             "split_exist": split_exist,
             "feature_dim": feature_dim,
             "feature_value": feature_value,
         }
 
-    def _select_base_user_behavior(self) -> np.int64:
+    def _select_base_user_behavior(self, position: int) -> np.int64:
         """Select the base user behavior for the User Behavior Tree.
+
+        Args:
+            position: int
+                position of the ranking.
 
         Returns:
             np.int64: base user behavior id.
@@ -934,19 +949,24 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             importance_weight_dict = bootstrap_data_["importance_weight_dict"]
 
             for user_behavior_id, iw in importance_weight_dict.items():
-                estimated_value = self.estimator.estimate_policy_value(weight=iw, alpha=self.alpha, reward=reward)
+                estimated_value = self.estimator.estimate_position_wise_policy_value(
+                    weight=iw, alpha=self.alpha, reward=reward, position=position
+                )
                 estimated_values[user_behavior_id, i] = estimated_value
 
-        surrogate_mse = self._compute_surrogate_mse(estimated_values=estimated_values, axis=1)
+        surrogate_mse = self._compute_surrogate_mse(estimated_values=estimated_values, position=position, axis=1)
         best_user_behavior_id = surrogate_mse.argmin()
         return best_user_behavior_id
 
-    def _compute_surrogate_mse(self, estimated_values: np.ndarray, axis: int) -> np.ndarray:
+    def _compute_surrogate_mse(self, estimated_values: np.ndarray, position: int, axis: int) -> np.ndarray:
         """Compute the surrogate mean squared error of the User Behavior Tree. make noise level of true bias.
 
         Args:
             estimated_values: np.ndarray
                 estimated values of the User Behavior Tree.
+
+            position: int
+                position of the ranking list.
 
             axis: int
                 axis to compute the surrogate mean squared
@@ -955,7 +975,7 @@ class UserBehaviorTree(BaseOffPolicyEstimatorWithTune):
             np.ndarray: surrogate mean squared error.
         """
 
-        bias = estimated_values.mean(axis) - self.approximate_policy_value
+        bias = estimated_values.mean(axis) - self.position_wise_policy_values[position]
         bias_hat = self.random_.normal(loc=bias, scale=self.noise_level * np.abs(bias))
         unbiased_variance = estimated_values.var(axis, ddof=1)
         surrogate_mse = (bias_hat**2) + unbiased_variance
