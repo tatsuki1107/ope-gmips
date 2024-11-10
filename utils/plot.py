@@ -102,6 +102,9 @@ def _visualize_only_mse(
     # y axixs
     ax.set_ylabel("")
     ax.set_yscale(yscale)
+    # for replot
+    # if yscale == "log":
+    #    ax.set_ylim(ax.get_ylim()[0], 3)
     ax.tick_params(axis="y", labelsize=TICK_FONTSIZE)
     # x axis
     ax.set_xscale(xscale)

@@ -53,6 +53,7 @@ PELETTE = {
     "SIPS": "tab:red",
     "snSIPS": "tab:red",
     "MSIPS": "tab:red",
+    "MSIPS (w/SLOPE)": "tab:orange",
     # IIPS
     "IIPS": "tab:blue",
     "snIIPS": "tab:blue",
@@ -71,6 +72,7 @@ LINESTYLE = {
     "SIPS": "",
     "snSIPS": "",
     "MSIPS": (7, 2),
+    "MSIPS (w/SLOPE)": (7, 2),
     # IIPS
     "IIPS": "",
     "snIIPS": "",

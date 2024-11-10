@@ -1,3 +1,4 @@
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -54,3 +55,29 @@ def aggregate_simulation_results(
         result_df.loc[row, "variance"] = variance
 
     return result_df
+
+
+def reorder_result_df(result_df: DataFrame, estimator_names: list) -> DataFrame:
+    """Reorder the result DataFrame.
+
+    Args:
+        result_df: DataFrame
+            DataFrame of simulation results.
+
+        estimator_names: list
+            list of estimator names.
+
+    Returns:
+        DataFrame: reordered DataFrame.
+    """
+
+    grouped = result_df.groupby("estimator")
+
+    df_reordered_list = []
+    for estimator in estimator_names:
+        if estimator in grouped.groups:
+            df_reordered_list.append(grouped.get_group(estimator))
+
+    df_reordered = pd.concat(df_reordered_list).reset_index(drop=True)
+
+    return df_reordered
