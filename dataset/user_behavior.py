@@ -107,7 +107,7 @@ def create_interaction_params(
 
             elif behavior_name_ == "top_k_cascade":
                 top_k = int_
-                behavior_matrix = np.ones((len_list, len_list), dtype=int)
+                behavior_matrix = np.zeros((len_list, len_list), dtype=int)
                 behavior_matrix[:, :top_k] = 1
                 np.fill_diagonal(behavior_matrix, 1)
                 behavior_matrix = behavior_matrix & np.tri(len_list, dtype=int)

@@ -40,6 +40,9 @@ class SyntheticRankingDatasetWithActionEmbeds(BaseBanditDataset):
         n_unobserved_cat_dim: int
             number of unobserved embedding dimensions.
 
+        n_deficient_actions_at_k: int
+            number of deficient actions at each position of a ranking.
+
         reward_noise: float
             standard deviation of Gaussian noise added to the expected reward.
 
