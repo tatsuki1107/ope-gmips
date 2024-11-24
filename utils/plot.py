@@ -104,7 +104,7 @@ def _visualize_only_mse(
     ax.set_yscale(yscale)
     # for replot
     # if yscale == "log":
-    #    ax.set_ylim(ax.get_ylim()[0], 3)
+    #    ax.set_ylim(ax.get_ylim()[0], 5)
     ax.tick_params(axis="y", labelsize=TICK_FONTSIZE)
     # x axis
     ax.set_xscale(xscale)
@@ -230,3 +230,24 @@ def visualize_train_curve_of_abstraction_model(
     plt.show()
     plt.savefig(img_path)
     plt.close()
+
+
+def revisualize(log_path: str, estimator_names: list, x_label: str, x_scale: str, per_behavior: bool = True) -> None:
+    from pathlib import Path
+
+    import pandas as pd
+
+    from utils.aggregate import reorder_result_df
+
+    if per_behavior:
+        for behavior in ["standard", "independent", "cascade"]:
+            result_path = Path(log_path) / behavior
+            df = pd.read_csv(result_path / "result.csv")
+            df = reorder_result_df(df, estimator_names)
+            visualize_mean_squared_error(df, x_label, x_scale, result_path)
+
+    else:
+        result_path = Path(log_path)
+        df = pd.read_csv(result_path / "result.csv")
+        df = reorder_result_df(df, estimator_names)
+        visualize_mean_squared_error(df, x_label, x_scale, result_path)
