@@ -2,7 +2,7 @@
 name = "Off-Policy Evaluation of Ranking Policies for Large Action Spaces via Embeddings and User Behavior Assumption"
 version = "0.1.0"
 description = ""
-authors = ["tatsuki takahashi"]
+authors = [""]
 readme = "README.md"
 
 [tool.poetry.dependencies]
