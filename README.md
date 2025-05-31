@@ -1,5 +1,5 @@
-# Off-Policy Evaluation of Ranking Policies for Large Action Spaces via Embeddings and User Behavior Assumption
-This repository provides the experimental code for the paper titled "Off-Policy Evaluation of Ranking Policies for Large Action Spaces via Embeddings and User Behavior Assumption, submitted to [ICML2025](https://icml.cc/).
+# Off-Policy Evaluation of Ranking Policies via Embedding-Space User Behavior Modeling
+This repository provides the experimental code for the paper titled "Off-Policy Evaluation of Ranking Policies via Embedding-Space User Behavior Modeling".
 
 ## Package Version
 The versions of Python and its associated libraries are as follows:
