@@ -1,5 +1,6 @@
 # Off-Policy Evaluation of Ranking Policies via Embedding-Space User Behavior Modeling
-This repository provides the experimental code for the paper titled "Off-Policy Evaluation of Ranking Policies via Embedding-Space User Behavior Modeling".
+This repository provides the experimental code for the paper titled "Off-Policy Evaluation of Ranking Policies via Embedding-Space User Behavior Modeling".  
+Preprint: https://arxiv.org/abs/2506.00446
 
 ## Package Version
 The versions of Python and its associated libraries are as follows:
